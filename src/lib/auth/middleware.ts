@@ -15,15 +15,22 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthCon
     return null;
   }
 
-  // Try API key authentication first
+  // Try API key authentication first (direct API key)
   if (authorization.startsWith('sk_')) {
     const result = await validateApiKey(authorization);
     return result;
   }
 
-  // Try JWT token authentication
+  // Try Bearer token authentication
   const token = extractTokenFromHeader(authorization);
   if (token) {
+    // Check if the Bearer token is actually an API key
+    if (token.startsWith('sk_')) {
+      const result = await validateApiKey(token);
+      return result;
+    }
+    
+    // Otherwise, try JWT token authentication
     const payload = verifyToken(token);
     if (payload) {
       return {

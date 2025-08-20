@@ -69,6 +69,8 @@ export async function broadcastSBTCTransfer(transaction: any) {
 }
 
 export function validateStacksAddress(address: string): boolean {
-  // Basic validation for Stacks address format
-  return /^S[A-Z0-9]{39}$/.test(address) || /^ST[A-Z0-9]{38}$/.test(address);
+  // Validate Stacks address format - addresses can vary in length
+  // SP for mainnet, ST for testnet, followed by base58 characters
+  return /^SP[123456789ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{32,}$/.test(address) ||
+         /^ST[123456789ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{32,}$/.test(address);
 }

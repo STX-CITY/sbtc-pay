@@ -39,7 +39,7 @@ export const transferSBTC = async ({
       throw new Error('Amount must be greater than 0');
     }
     
-    if (!recipient.startsWith('SP') && !recipient.startsWith('ST')) {
+    if (!validateStacksAddress(recipient, network)) {
       throw new Error('Invalid recipient address format');
     }
 
@@ -127,9 +127,9 @@ export const getSBTCBalance = async (
 // Validate Stacks address format
 export const validateStacksAddress = (address: string, network: NetworkType = getCurrentNetwork()): boolean => {
   if (network === 'mainnet') {
-    return /^SP[A-Z0-9]{39}$/.test(address);
+    return address.startsWith('SP');
   } else {
-    return /^ST[A-Z0-9]{39}$/.test(address);
+    return address.startsWith('ST');
   }
 };
 

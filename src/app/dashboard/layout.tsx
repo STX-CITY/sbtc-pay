@@ -1,11 +1,32 @@
+'use client';
+
 import { ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ProtectedRoute } from '@/components/auth/protected-route';
+import useWalletStore from '@/stores/WalletStore';
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+function DashboardNavigation({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { disconnectWallet } = useWalletStore();
+  
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.removeItem('api_key');
+    localStorage.removeItem('merchant_id');
+    localStorage.removeItem('merchant_address');
+    
+    // Disconnect wallet
+    disconnectWallet();
+    
+    // Redirect to home
+    router.push('/');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm border-b">
@@ -17,6 +38,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
+              <Link 
+                href="/dashboard/products" 
+                className="text-gray-600 hover:text-gray-900"
+              >
+                Products
+              </Link>
               <Link 
                 href="/dashboard/payments" 
                 className="text-gray-600 hover:text-gray-900"
@@ -35,7 +62,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 Analytics
               </Link>
-              <button className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+              <Link 
+                href="/dashboard/settings" 
+                className="text-gray-600 hover:text-gray-900"
+              >
+                Settings
+              </Link>
+              <button 
+                onClick={handleLogout}
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              >
                 Logout
               </button>
             </div>
@@ -47,5 +83,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {children}
       </div>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  return (
+    <ProtectedRoute>
+      <DashboardNavigation>
+        {children}
+      </DashboardNavigation>
+    </ProtectedRoute>
   );
 }

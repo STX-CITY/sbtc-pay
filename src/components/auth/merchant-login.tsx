@@ -1,0 +1,138 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import useWalletStore from '@/stores/WalletStore';
+
+interface MerchantData {
+  id: string;
+  name: string;
+  email: string;
+  stacksAddress: string;
+  apiKeyTest: string;
+  created: number;
+}
+
+export function MerchantLogin() {
+  const router = useRouter();
+  const { isConnected, currentAddress, connectWallet } = useWalletStore();
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleWalletLogin = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // First connect the wallet
+      await connectWallet();
+      
+    } catch (err) {
+      setError('Failed to connect wallet. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const checkMerchantRegistration = async (address: string) => {
+    try {
+      const response = await fetch('/api/v1/merchants/check-address', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ address })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Failed to check registration');
+      }
+
+      if (!data.registered) {
+        setError(data.message || 'Address not registered. Please register first.');
+        return;
+      }
+
+      // Store merchant data for authentication
+      const merchantData: MerchantData = data.merchant;
+      localStorage.setItem('api_key', merchantData.apiKeyTest);
+      localStorage.setItem('merchant_id', merchantData.id);
+      localStorage.setItem('merchant_address', merchantData.stacksAddress);
+
+      // Redirect to dashboard
+      router.push('/dashboard');
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to verify registration');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check registration when wallet is connected
+  useEffect(() => {
+    if (isConnected && currentAddress && loading) {
+      checkMerchantRegistration(currentAddress);
+    }
+  }, [isConnected, currentAddress, loading]);
+
+  return (
+    <div className="max-w-md mx-auto bg-white rounded-lg shadow p-6">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Merchant Login</h2>
+        <p className="text-gray-600">Connect your wallet to access your dashboard</p>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-4">
+        <div className="bg-blue-50 border border-blue-200 rounded p-4">
+          <h3 className="font-medium text-blue-900 mb-2">How it works:</h3>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>1. Connect your Stacks wallet</li>
+            <li>2. We check if your address is registered</li>
+            <li>3. Access your merchant dashboard</li>
+          </ul>
+        </div>
+
+        <button
+          onClick={handleWalletLogin}
+          disabled={loading}
+          className={`w-full py-3 px-4 rounded font-medium ${
+            loading 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : isConnected
+              ? 'bg-green-500 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+          }`}
+        >
+          {loading ? 'Checking...' : isConnected ? '✓ Wallet Connected - Verifying...' : 'Connect Wallet'}
+        </button>
+        
+        {isConnected && !loading && (
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">Connected Address:</p>
+            <p className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+              {currentAddress}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 text-center text-sm text-gray-500">
+        <p>
+          Don't have an account?{' '}
+          <a href="/register" className="text-blue-500 hover:text-blue-700">
+            Register as merchant
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}

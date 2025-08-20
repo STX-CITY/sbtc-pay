@@ -15,6 +15,21 @@ export function generateSubscriptionId(): string {
   return `sub_${randomPart}`;
 }
 
+export function generateProductId(): string {
+  const randomPart = randomBytes(12).toString('base64url');
+  return `prod_${randomPart}`;
+}
+
+export function generateApiKey(prefix: 'live' | 'test'): string {
+  const randomPart = randomBytes(24).toString('base64url');
+  return `sk_${prefix}_${randomPart}`;
+}
+
+export function generateWebhookSecret(): string {
+  const randomPart = randomBytes(32).toString('base64url');
+  return `whsec_${randomPart}`;
+}
+
 export function formatPaymentIntentResponse(paymentIntent: any) {
   return {
     id: paymentIntent.id,

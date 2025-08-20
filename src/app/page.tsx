@@ -12,8 +12,11 @@ export default function LandingPage() {
               <Link href="/docs" className="text-gray-600 hover:text-gray-900">
                 Documentation
               </Link>
-              <Link href="/dashboard" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                Dashboard
+              <Link href="/login" className="text-gray-600 hover:text-gray-900">
+                Login
+              </Link>
+              <Link href="/register" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Get Started
               </Link>
             </div>
           </div>
@@ -32,8 +35,8 @@ export default function LandingPage() {
             Build powerful payment experiences with our developer-first platform.
           </p>
           <div className="space-x-4">
-            <Link href="/dashboard" className="bg-blue-500 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600">
-              Get Started
+            <Link href="/register" className="bg-blue-500 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600">
+              Start Accepting Payments
             </Link>
             <Link href="/docs" className="border border-gray-300 text-gray-700 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-50">
               View Docs
