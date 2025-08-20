@@ -1,0 +1,22 @@
+{
+  "name": "@sbtc-gateway/js",
+  "version": "1.0.0",
+  "description": "JavaScript SDK for sBTC Payment Gateway",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["sbtc", "bitcoin", "stacks", "payments", "sdk"],
+  "author": "sBTC Gateway",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "files": [
+    "dist/**/*"
+  ]
+}

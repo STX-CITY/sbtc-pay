@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sBTC Payment Widget Example</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .example {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .code {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>sBTC Payment Widget Examples</h1>
+    
+    <div class="example">
+        <h2>1. Auto-initialization (simplest)</h2>
+        <p>Just add the script tag with your public key and use data attributes:</p>
+        
+        <div class="code">
+&lt;script src="https://js.sbtcgateway.com/v1/" 
+        data-sbtc-key="pk_test_123..." 
+        data-auto-mount="true"&gt;&lt;/script&gt;
+
+&lt;div data-sbtc-button 
+     data-amount="100000" 
+     data-description="Premium Subscription"&gt;
+&lt;/div&gt;</div>
+        
+        <!-- Example button (disabled for demo) -->
+        <div style="margin-top: 15px;">
+            <div id="auto-button" style="display: inline-block; padding: 12px 24px; background: #3B82F6; color: white; border-radius: 6px;">
+                Pay 0.1 sBTC
+            </div>
+        </div>
+    </div>
+
+    <div class="example">
+        <h2>2. Manual initialization</h2>
+        <p>For more control, initialize the widget programmatically:</p>
+        
+        <div class="code">
+&lt;script src="https://js.sbtcgateway.com/v1/"&gt;&lt;/script&gt;
+&lt;script&gt;
+const widget = SBTCGateway.create({
+  publicKey: 'pk_test_123...'
+});
+
+widget.mount('#payment-button', {
+  amount: 50000, // 0.05 sBTC
+  description: 'Digital Product',
+  text: 'Buy Now',
+  onSuccess: (paymentIntent) => {
+    console.log('Payment created:', paymentIntent);
+  },
+  onError: (error) => {
+    console.error('Payment failed:', error);
+  }
+});
+&lt;/script&gt;</div>
+        
+        <!-- Example button -->
+        <div style="margin-top: 15px;">
+            <div id="manual-button"></div>
+        </div>
+    </div>
+
+    <div class="example">
+        <h2>3. With USD amount</h2>
+        <p>You can specify amounts in USD and they'll be converted to sBTC:</p>
+        
+        <div class="code">
+&lt;div data-sbtc-button 
+     data-amount-usd="50" 
+     data-description="$50 Product"
+     data-text="Pay $50"&gt;
+&lt;/div&gt;</div>
+        
+        <!-- Example button -->
+        <div style="margin-top: 15px;">
+            <div id="usd-button"></div>
+        </div>
+    </div>
+
+    <div class="example">
+        <h2>4. Modal checkout</h2>
+        <p>Open checkout in a modal instead of redirecting:</p>
+        
+        <div class="code">
+widget.mount('#modal-button', {
+  amount: 25000,
+  description: 'Modal Payment',
+  redirectMode: 'modal'
+});</div>
+        
+        <!-- Example button -->
+        <div style="margin-top: 15px;">
+            <div id="modal-demo-button"></div>
+        </div>
+    </div>
+
+    <div class="example">
+        <h2>5. Custom styling</h2>
+        <p>Customize the button appearance:</p>
+        
+        <div class="code">
+const widget = SBTCGateway.create({
+  publicKey: 'pk_test_123...',
+  styles: {
+    button: {
+      backgroundColor: '#059669',
+      color: 'white',
+      padding: '16px 32px',
+      borderRadius: '8px',
+      fontSize: '18px',
+      fontWeight: 'bold'
+    },
+    buttonHover: {
+      backgroundColor: '#047857'
+    }
+  }
+});
+        </div>
+        
+        <!-- Example button -->
+        <div style="margin-top: 15px;">
+            <div id="custom-button"></div>
+        </div>
+    </div>
+
+    <!-- Include the widget script -->
+    <script src="./src/index.js"></script>
+    
+    <!-- Demo initialization -->
+    <script>
+        // Demo widget with test key
+        const demoWidget = SBTCGateway.create({
+            publicKey: 'pk_test_demo_key_123456789',
+            checkoutBase: 'http://localhost:3000' // For local development
+        });
+
+        // Manual button
+        demoWidget.mount('#manual-button', {
+            amount: 50000,
+            description: 'Digital Product',
+            text: 'Buy Now (Demo)',
+            onSuccess: (paymentIntent) => {
+                alert('Payment created! ID: ' + paymentIntent.id);
+            },
+            onError: (error) => {
+                alert('Demo error: ' + error.message);
+            }
+        });
+
+        // USD button
+        demoWidget.mount('#usd-button', {
+            amount_usd: 50,
+            description: '$50 Product',
+            text: 'Pay $50 (Demo)'
+        });
+
+        // Modal button
+        demoWidget.mount('#modal-demo-button', {
+            amount: 25000,
+            description: 'Modal Payment',
+            text: 'Pay in Modal (Demo)',
+            redirectMode: 'modal'
+        });
+
+        // Custom styled button
+        const customWidget = SBTCGateway.create({
+            publicKey: 'pk_test_demo_key_123456789',
+            checkoutBase: 'http://localhost:3000',
+            styles: {
+                button: {
+                    backgroundColor: '#059669',
+                    color: 'white',
+                    padding: '16px 32px',
+                    borderRadius: '8px',
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                },
+                buttonHover: {
+                    backgroundColor: '#047857'
+                }
+            }
+        });
+
+        customWidget.mount('#custom-button', {
+            amount: 75000,
+            description: 'Premium Product',
+            text: 'Buy Premium (Demo)'
+        });
+
+        // Simulate auto-initialization button
+        document.getElementById('auto-button').addEventListener('click', () => {
+            alert('This would create a payment for 0.1 sBTC (demo)');
+        });
+    </script>
+</body>
+</html>
