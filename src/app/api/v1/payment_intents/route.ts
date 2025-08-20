@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db, paymentIntents } from '@/lib/db';
+import { db, paymentIntents, products } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
 import { generatePaymentIntentId, formatPaymentIntentResponse, getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
 import { eq } from 'drizzle-orm';
@@ -13,47 +13,134 @@ const createPaymentIntentSchema = z.object({
   customer_address: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   return_url: z.string().url().optional(),
-}).refine(data => data.amount || data.amount_usd, {
-  message: "Either 'amount' or 'amount_usd' must be provided"
+  product_id: z.string().optional(), // Optional product ID to get merchant from
+  product: z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    price: z.number(),
+    price_usd: z.number().optional(),
+    images: z.array(z.string()).optional(),
+    merchantId: z.string()
+  }).optional()
+}).refine(data => data.product_id || data.product || data.amount || data.amount_usd, {
+  message: "Either 'product_id', 'product', or amount fields must be provided"
 });
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await authenticateRequest(request);
-    if (!auth) {
-      return NextResponse.json(
-        { error: { type: 'authentication_error', message: 'Invalid authentication' } },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const validatedData = createPaymentIntentSchema.parse(body);
 
+    let merchantId: string;
+    let productId: string | undefined;
     let amount: number;
     let amountUsd: number | undefined;
+    let description: string | undefined;
+    let currency: string = 'sbtc';
+    let productData: any = null;
 
-    if (validatedData.amount_usd) {
-      const exchangeRate = await getExchangeRate();
-      amount = convertUsdToSbtc(validatedData.amount_usd, exchangeRate);
-      amountUsd = validatedData.amount_usd;
+    // If product data is provided directly, use it
+    if (validatedData.product) {
+      productData = validatedData.product;
+      merchantId = validatedData.product.merchantId;
+      
+      if (!merchantId) {
+        return NextResponse.json(
+          { error: { type: 'invalid_request_error', message: 'merchantId is required in product data' } },
+          { status: 400 }
+        );
+      }
+      
+      productId = validatedData.product.id;
+      amount = validatedData.product.price;
+      amountUsd = validatedData.product.price_usd;
+      description = validatedData.product.description || validatedData.product.name;
+      currency = 'sbtc';
+    } else if (validatedData.product_id) {
+      // Fallback: If product_id is provided, use product data from DB
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, validatedData.product_id))
+        .limit(1);
+
+      if (!product) {
+        return NextResponse.json(
+          { error: { type: 'resource_missing', message: 'Product not found' } },
+          { status: 404 }
+        );
+      }
+
+      // Store product data for metadata
+      productData = product;
+
+      // Use product data directly
+      merchantId = product.merchantId;
+      productId = product.id;
+      amount = product.price; // Product price is already in sBTC microunits
+      amountUsd = product.priceUsd ? parseFloat(product.priceUsd) : undefined;
+      description = product.description || product.name;
+      currency = product.currency;
     } else {
-      amount = validatedData.amount!;
-      // Optionally calculate USD equivalent
+      // For backward compatibility, use validated input data
+      if (!validatedData.metadata?.merchantId) {
+        return NextResponse.json(
+          { error: { type: 'invalid_request_error', message: 'Either product_id or merchantId in metadata is required' } },
+          { status: 400 }
+        );
+      }
+
+      merchantId = validatedData.metadata.merchantId;
+      
+      if (validatedData.amount_usd) {
+        const exchangeRate = await getExchangeRate();
+        amount = convertUsdToSbtc(validatedData.amount_usd, exchangeRate);
+        amountUsd = validatedData.amount_usd;
+      } else {
+        amount = validatedData.amount!;
+      }
+      
+      description = validatedData.description;
+      currency = validatedData.currency;
+    }
+
+    // Enhanced metadata with merchantId and product data (if applicable)
+    const enhancedMetadata = {
+      ...validatedData.metadata,
+      merchantId: merchantId
+    };
+
+    // Add all product fields to metadata for reuse in public endpoint
+    if (productData) {
+      (enhancedMetadata as any).product = {
+        id: productData.id,
+        name: productData.name,
+        description: productData.description,
+        price: productData.price,
+        price_usd: productData.price_usd || productData.priceUsd,
+        images: productData.images,
+        ...(productData.type && { type: productData.type }),
+        ...(productData.currency && { currency: productData.currency }),
+        ...(productData.active !== undefined && { active: productData.active }),
+        ...(productData.createdAt && { createdAt: productData.createdAt.getTime?.() || productData.createdAt }),
+        ...(productData.updatedAt && { updatedAt: productData.updatedAt.getTime?.() || productData.updatedAt })
+      };
     }
 
     const paymentIntentId = generatePaymentIntentId();
 
     const newPaymentIntent = {
       id: paymentIntentId,
-      merchantId: auth.merchantId,
+      merchantId: merchantId,
+      productId: productId,
       amount,
       amountUsd: amountUsd?.toString(),
-      currency: validatedData.currency,
+      currency: currency,
       status: 'created' as const,
       customerAddress: validatedData.customer_address,
-      description: validatedData.description,
-      metadata: validatedData.metadata,
+      description: description,
+      metadata: enhancedMetadata,
     };
 
     const [createdPaymentIntent] = await db

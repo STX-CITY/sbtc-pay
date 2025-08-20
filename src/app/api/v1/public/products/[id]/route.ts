@@ -36,6 +36,7 @@ export async function GET(
       price_usd: product.priceUsd ? parseFloat(product.priceUsd) : undefined,
       currency: product.currency,
       images: product.images,
+      merchantId: product.merchantId, // Include merchantId for payment intent creation
       // Don't expose metadata publicly
       created: Math.floor(product.createdAt.getTime() / 1000)
     });

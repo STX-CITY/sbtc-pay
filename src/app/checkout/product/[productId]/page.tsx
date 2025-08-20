@@ -50,7 +50,15 @@ export default function ProductCheckoutPage({
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          amount: productData.price / 100_000_000, // Convert microsBTC to sBTC
+          product: {
+            id: productData.id,
+            name: productData.name,
+            description: productData.description,
+            price: productData.price,
+            price_usd: productData.price_usd,
+            images: productData.images,
+            merchantId: productData.merchantId // merchantId should come from product data
+          },
           description: `Purchase: ${productData.name}`,
           metadata: {
             product_id: productData.id,

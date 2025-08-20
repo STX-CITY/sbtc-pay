@@ -8,6 +8,20 @@ export interface CreatePaymentIntentRequest {
   return_url?: string;
 }
 
+export interface ProductData {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  price: number;
+  price_usd?: number;
+  currency: string;
+  images?: string[];
+  active: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
 export interface PaymentIntentResponse {
   id: string;
   amount: number;
@@ -20,6 +34,8 @@ export interface PaymentIntentResponse {
   payment_method?: string;
   receipt_url?: string;
   tx_id?: string;
+  recipient_address?: string; // Merchant's Stacks address where payment should be sent
+  product?: ProductData; // Product information from metadata
   created: number;
 }
 
