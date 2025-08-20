@@ -12,6 +12,7 @@ interface CheckoutFormProps {
 export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntentResponse | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [customerEmail, setCustomerEmail] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
@@ -65,6 +66,42 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
 
   const handlePaymentError = (error: string) => {
     setError(error);
+  };
+
+  const handleEmailUpdate = async (email: string) => {
+    if (!email || !paymentIntent) return;
+
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_TEST_API_KEY || 'test_key';
+      const response = await fetch(`/api/v1/payment_intents/${paymentIntent.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          customer_email: email
+        })
+      });
+
+      if (response.ok) {
+        const updatedPaymentIntent = await response.json();
+        setPaymentIntent(updatedPaymentIntent);
+      }
+    } catch (err) {
+      console.error('Failed to update payment intent with email:', err);
+    }
+  };
+
+  const handleEmailChange = (email: string) => {
+    setCustomerEmail(email);
+    
+    // Debounce the email update
+    const timeoutId = setTimeout(() => {
+      handleEmailUpdate(email);
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
   };
 
   if (loading) {
@@ -171,6 +208,27 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
       {/* Exchange Rate Info */}
       <div className="text-xs text-gray-500 text-center">
         Current rate: 1 sBTC = ${exchangeRate.toLocaleString()}
+      </div>
+
+      {/* Customer Email */}
+      <div className="border rounded-lg p-4">
+        <h3 className="font-medium text-gray-900 mb-3">Contact Information</h3>
+        <div className="space-y-2">
+          <label htmlFor="customer-email" className="block text-sm font-medium text-gray-700">
+            Email Address (Optional)
+          </label>
+          <input
+            type="email"
+            id="customer-email"
+            value={customerEmail}
+            onChange={(e) => handleEmailChange(e.target.value)}
+            placeholder="your@email.com"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          />
+          <p className="text-xs text-gray-500">
+            We'll send payment confirmations and receipts to this email.
+          </p>
+        </div>
       </div>
 
       {/* Wallet Connection */}

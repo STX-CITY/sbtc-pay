@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { showConnect, disconnect, getLocalStorage } from '@stacks/connect';
 import { getNetwork, getCurrentNetwork, type NetworkType } from '@/lib/stacks/config';
+import { fetchBlockHeight } from '@/lib/stacks/blockheight';
 
 // Define the types for the store's state and actions
 interface AddressData {
@@ -31,6 +32,7 @@ interface WalletStoreState {
   isConnected: boolean;
   publicKey: string;
   currentAddress: string;
+  blockHeight: number;
   balance: {
     sbtc: number;
     stx: number;
@@ -44,6 +46,7 @@ interface WalletStoreActions {
   disconnectWallet: () => void;
   handleNetworkChange: (network: NetworkType) => void;
   fetchBalance: (address: string) => Promise<void>;
+  fetchBlockHeight: () => Promise<void>;
   setCurrentAddress: (address: string) => void;
 }
 
@@ -71,6 +74,7 @@ const useWalletStore = create(
       isConnected: false,
       publicKey: '',
       currentAddress: '',
+      blockHeight: 0,
       balance: {
         sbtc: 0,
         stx: 0
@@ -86,7 +90,6 @@ const useWalletStore = create(
       connectWallet: async () => {
         try {
           const networkType = get().network;
-          const networkConfig = getNetwork(networkType);
           
           await new Promise<void>((resolve, reject) => {
             showConnect({
@@ -151,10 +154,11 @@ const useWalletStore = create(
                   publicKey: data.authResponse?.profile?.publicKey || ''
                 });
                 
-                // Fetch balance for the connected address
+                // Fetch balance and block height for the connected address
                 if (currentAddress) {
                   get().fetchBalance(currentAddress);
                 }
+                get().fetchBlockHeight();
                 
                 resolve();
               },
@@ -205,32 +209,27 @@ const useWalletStore = create(
         
         try {
           const network = get().network;
-          const apiUrl = network === 'mainnet'
+          
+          // Fetch STX balance from Stacks API
+          const stxApiUrl = network === 'mainnet'
             ? 'https://api.stacks.co'
             : 'https://api.testnet.stacks.co';
           
-          const response = await fetch(`${apiUrl}/extended/v1/address/${address}/balances`);
+          const stxResponse = await fetch(`${stxApiUrl}/extended/v1/address/${address}/balances`);
+          let stxBalance = 0;
           
-          if (!response.ok) {
-            throw new Error(`Failed to fetch balance: ${response.statusText}`);
+          if (stxResponse.ok) {
+            const stxData = await stxResponse.json();
+            stxBalance = parseInt(stxData.stx?.balance || '0') / 1_000_000;
           }
           
-          const data = await response.json();
-          
-          // Get STX balance
-          const stxBalance = parseInt(data.stx?.balance || '0') / 1_000_000;
-          
-          // Get sBTC balance
-          // Look for sBTC token in fungible tokens
+          // Fetch sBTC balance from our API (which uses Hiro API)
+          const sbtcResponse = await fetch(`/api/v1/public/balance/${address}`);
           let sbtcBalance = 0;
-          if (data.fungible_tokens) {
-            // Look for sBTC token contract
-            for (const [contractId, tokenData] of Object.entries(data.fungible_tokens)) {
-              if (contractId.includes('sbtc')) {
-                sbtcBalance = parseInt((tokenData as any).balance || '0') / 100_000_000;
-                break;
-              }
-            }
+          
+          if (sbtcResponse.ok) {
+            const sbtcData = await sbtcResponse.json();
+            sbtcBalance = sbtcData.sbtc_amount || 0;
           }
           
           set({ 
@@ -242,6 +241,16 @@ const useWalletStore = create(
         } catch (error) {
           console.error('Error fetching balance:', error);
         }
+      },
+
+      fetchBlockHeight: async () => {
+        try {
+          const network = get().network;
+          const blockHeight = await fetchBlockHeight(network);
+          set({ blockHeight });
+        } catch (error) {
+          console.error('Error fetching block height:', error);
+        }
       }
     }),
     {
@@ -251,8 +260,10 @@ const useWalletStore = create(
         network: state.network,
         currentAddress: state.currentAddress,
         publicKey: state.publicKey,
-        isConnected: state.isConnected
-      } as Pick<WalletStore, 'userData' | 'network' | 'currentAddress' | 'publicKey' | 'isConnected'>)
+        isConnected: state.isConnected,
+        blockHeight: state.blockHeight,
+        balance: state.balance
+      } as Partial<WalletStore>)
     }
   )
 );

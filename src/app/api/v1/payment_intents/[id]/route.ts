@@ -49,6 +49,8 @@ export async function GET(
 
 const updatePaymentIntentSchema = z.object({
   description: z.string().optional(),
+  customer_email: z.string().email().optional(),
+  customer_address: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
@@ -72,7 +74,10 @@ export async function POST(
     const [updatedPaymentIntent] = await db
       .update(paymentIntents)
       .set({
-        ...validatedData,
+        description: validatedData.description,
+        customerEmail: validatedData.customer_email,
+        customerAddress: validatedData.customer_address,
+        metadata: validatedData.metadata,
         updatedAt: new Date(),
       })
       .where(

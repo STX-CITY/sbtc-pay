@@ -81,7 +81,21 @@ export const transferSBTC = async ({
     });
 
     console.log('sBTC transfer completed:', response);
+
+    // Use chainhooks to listen for the tx to be confirmed and update the database
+    const txCorrectFormat = response.txid?.startsWith('0x') ? response.txid : `0x${response.txid}`;
+    await fetch('/api/chainhooks/bns/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        tx_id: txCorrectFormat,
+        start_block: blockHeight
+      }),
+    });
     
+
     return {
       txId: response.txid || '',
       paymentIntentId: memo?.includes('Payment:') ? memo.split('Payment:')[1]?.trim() : undefined

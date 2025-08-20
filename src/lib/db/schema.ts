@@ -57,6 +57,7 @@ export const paymentIntents = pgTable('payment_intents', {
   currency: varchar('currency', { length: 10 }).default('sbtc').notNull(),
   status: paymentStatusEnum('status').default('created').notNull(),
   customerAddress: varchar('customer_address', { length: 255 }),
+  customerEmail: varchar('customer_email', { length: 255 }),
   description: text('description'),
   metadata: jsonb('metadata'),
   txId: varchar('tx_id', { length: 255 }),
