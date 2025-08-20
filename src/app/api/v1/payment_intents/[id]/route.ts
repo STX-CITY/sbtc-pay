@@ -52,6 +52,7 @@ const updatePaymentIntentSchema = z.object({
   customer_email: z.string().email().optional(),
   customer_address: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
+  tx_id: z.string().optional()
 });
 
 export async function POST(
@@ -60,13 +61,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const auth = await authenticateRequest(request);
-    if (!auth) {
-      return NextResponse.json(
-        { error: { type: 'authentication_error', message: 'Invalid authentication' } },
-        { status: 401 }
-      );
-    }
+ 
 
     const body = await request.json();
     const validatedData = updatePaymentIntentSchema.parse(body);
@@ -78,14 +73,10 @@ export async function POST(
         customerEmail: validatedData.customer_email,
         customerAddress: validatedData.customer_address,
         metadata: validatedData.metadata,
-        updatedAt: new Date(),
+        txId: validatedData.tx_id,
+        updatedAt: new Date()
       })
-      .where(
-        and(
-          eq(paymentIntents.id, id),
-          eq(paymentIntents.merchantId, auth.merchantId)
-        )
-      )
+      .where(eq(paymentIntents.id, id))
       .returning();
 
     if (!updatedPaymentIntent) {

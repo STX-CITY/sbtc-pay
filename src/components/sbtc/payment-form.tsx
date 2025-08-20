@@ -35,6 +35,7 @@ export function PaymentForm({
 
     try {
       const result = await transferSBTC({
+        paymentIntentId,
         amount,
         sender: currentAddress,
         recipient: recipientAddress,

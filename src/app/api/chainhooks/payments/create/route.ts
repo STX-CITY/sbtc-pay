@@ -23,14 +23,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let webhookUrl = "https://your-domain.com/api/chainhooks/payments/hook";
   if (process.env.NODE_ENV === "development") {
     // Use ngrok or similar for development
-    webhookUrl = process.env.WEBHOOK_URL || "https://512b-138-199-60-178.ngrok-free.app/api/chainhooks/payments/hook";
+    webhookUrl = process.env.WEBHOOK_URL || "https://72d502e8d2dc.ngrok-free.app/api/chainhooks/payments/hook";
   } else {
     // Production webhook URL
     webhookUrl = process.env.PRODUCTION_WEBHOOK_URL || "https://your-production-domain.com/api/chainhooks/payments/hook";
   }
 
   // Get environment variables
-  const CHAINHOOK_API = process.env.CHAINHOOK_API || 'your-chainhook-api-key';
+  const CHAINHOOK_API = process.env.CHAINHOOK_API_KEY || 'your-chainhook-api-key';
   const CHAINHOOK_BEARER = process.env.CHAINHOOK_BEARER || 'your-bearer-token';
 
   const chainhookTemplate = {

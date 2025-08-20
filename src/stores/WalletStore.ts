@@ -263,7 +263,7 @@ const useWalletStore = create(
         isConnected: state.isConnected,
         blockHeight: state.blockHeight,
         balance: state.balance
-      } as Partial<WalletStore>)
+      })
     }
   )
 );

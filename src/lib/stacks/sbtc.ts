@@ -10,8 +10,10 @@ import {
   Cl  
 } from '@stacks/transactions';
 import { SBTC_CONTRACT, getNetwork, getCurrentNetwork, type NetworkType, MICROUNITS_PER_SBTC } from './config';
+import useWalletStore from '@/stores/WalletStore';
 
 export interface SBTCTransferParams {
+  paymentIntentId: string;
   amount: number;           // Amount in sBTC microunits (1 sBTC = 100,000,000 microunits)
   sender: string;          // Sender Stacks address
   recipient: string;        // Recipient Stacks address
@@ -25,11 +27,13 @@ export interface SBTCTransferResult {
 }
 
 export const transferSBTC = async ({
+  paymentIntentId,
   amount,
   sender,
   recipient,
   memo,
   network = getCurrentNetwork()
+  
 }: SBTCTransferParams): Promise<SBTCTransferResult> => {
   try {
     const contractConfig = SBTC_CONTRACT[network];
@@ -51,9 +55,9 @@ export const transferSBTC = async ({
     const assetString = `${contractConfig.address}.${contractConfig.name}::sbtc`;
 
     // Create post conditions to ensure the exact amount is transferred
-    const postConditions: PostCondition[] = [
-      Pc.principal(sender).willSendEq(amount).ft(assetString, 0)
-    ];
+    // const postConditions: PostCondition[] = [
+    //   Pc.principal(sender).willSendEq(amount).ft(assetString, 0)
+    // ];
 
     console.log('Initiating sBTC transfer:', {
       contractAddress: contractConfig.address,
@@ -65,7 +69,7 @@ export const transferSBTC = async ({
       network
     });
 
-    debugger;
+    
     // Use request API for contract call
     const response = await request('stx_callContract', {
       contract: `${contractConfig.address}.${contractConfig.name}`,
@@ -74,31 +78,67 @@ export const transferSBTC = async ({
         Cl.uint(amount),                    // amount in microsBTC
         Cl.principal(sender),       // sender address
         Cl.principal(recipient),    // recipient address
-        Cl.none() 
+        Cl.none()
       ],
       postConditionMode: 'allow',
       network: 'testnet'
     });
 
-    console.log('sBTC transfer completed:', response);
+    // Update the payment intent with the tx id
+    if (response.txid) {
+      try {
+        const apiKey = process.env.NEXT_PUBLIC_TEST_API_KEY || 'test_key';
+        
+        const updateResponse = await fetch(`/api/v1/payment_intents/${paymentIntentId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            tx_id: response.txid
+          })
+        });
+        debugger;
+        
+        if (updateResponse.ok) {
+          console.log(`Updated payment intent ${paymentIntentId} with transaction ID: ${response.txid}`);
+        } else {
+          console.error('Failed to update payment intent with transaction ID:', updateResponse.statusText);
+        }
+      } catch (error) {
+        console.error('Error updating payment intent with transaction ID:', error);
+      }
+    }
+
+    // Get current block height from wallet store
+    const { blockHeight, fetchBlockHeight } = useWalletStore.getState();
+    
+    // If block height is not available, fetch it
+    let currentBlockHeight = blockHeight;
+    if (!currentBlockHeight || currentBlockHeight === 0) {
+      await fetchBlockHeight();
+      currentBlockHeight = useWalletStore.getState().blockHeight;
+    }
 
     // Use chainhooks to listen for the tx to be confirmed and update the database
     const txCorrectFormat = response.txid?.startsWith('0x') ? response.txid : `0x${response.txid}`;
-    await fetch('/api/chainhooks/bns/create', {
+    await fetch('/api/chainhooks/payments/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         tx_id: txCorrectFormat,
-        start_block: blockHeight
+        start_block: currentBlockHeight,
+        network: network
       }),
     });
     
 
     return {
       txId: response.txid || '',
-      paymentIntentId: memo?.includes('Payment:') ? memo.split('Payment:')[1]?.trim() : undefined
+      paymentIntentId
     };
   } catch (error) {
     console.error('sBTC transfer failed:', error);

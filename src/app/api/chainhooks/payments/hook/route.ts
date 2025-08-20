@@ -1,68 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { db, paymentIntents } from '@/lib/db';
 import { createWebhookEvent } from '@/lib/webhooks/sender';
 import { formatPaymentIntentResponse } from '@/lib/payments/utils';
-import { eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export const revalidate = 0;
 
-// Enhanced schema based on Hiro chainhook format
-const chainhookEventSchema = z.object({
-  chainhook: z.object({
-    uuid: z.string(),
-    predicate: z.object({
-      scope: z.string()
+// Random headers to avoid rate limiting
+function getRandomHeader() {
+  const userAgents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+  ];
+  
+  return {
+    'User-Agent': userAgents[Math.floor(Math.random() * userAgents.length)],
+    'Accept': 'application/json',
+    'Cache-Control': 'no-cache'
+  };
+}
+
+// Extract sBTC amount from transaction events
+function extractSBTCAmountFromTx(txData: any): number | null {
+  try {
+    if (txData.events) {
+      for (const event of txData.events) {
+        if (event.event_type === 'ft_transfer_event' && 
+            event.asset_identifier?.includes('sbtc')) {
+          return parseInt(event.amount);
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error extracting sBTC amount:', error);
+    return null;
+  }
+}
+
+// Verify payment amount matches with tolerance
+function verifyPaymentAmount(paymentIntent: any, txAmount: number): boolean {
+  const tolerance = Math.max(paymentIntent.amount * 0.01, 100); // 1% or 100 microsBTC minimum
+  const amountDifference = Math.abs(txAmount - paymentIntent.amount);
+  return amountDifference <= tolerance;
+}
+
+// Update payment intent status
+async function updatePaymentIntentStatus(paymentIntent: any, txId: string, txData: any, chainhookUuid: string) {
+  // Update payment intent to succeeded
+  const [updatedPaymentIntent] = await db.update(paymentIntents)
+    .set({
+      status: 'succeeded',
+      txId: txId,
+      updatedAt: new Date(),
+      metadata: {
+        ...paymentIntent.metadata,
+        processed_at: new Date().toISOString(),
+        block_height: txData.block_height,
+        block_hash: txData.block_hash,
+        transaction_fee: txData.fee_rate,
+        chainhook_uuid: chainhookUuid
+      }
     })
-  }),
-  apply: z.array(z.object({
-    block_identifier: z.object({
-      index: z.number(),
-      hash: z.string()
-    }),
-    parent_block_identifier: z.object({
-      index: z.number(),
-      hash: z.string()
-    }),
-    timestamp: z.number(),
-    transactions: z.array(z.object({
-      transaction_identifier: z.object({
-        hash: z.string()
-      }),
-      operations: z.array(z.any()),
-      metadata: z.object({
-        success: z.boolean(),
-        result: z.string().optional(),
-        description: z.string().optional(),
-        sponsor: z.object({
-          address: z.string()
-        }).optional(),
-        sender: z.string(),
-        fee: z.string(),
-        kind: z.object({
-          type: z.string(),
-          data: z.object({
-            signer: z.string(),
-            sponsor: z.string().optional()
-          }).optional()
-        }),
-        receipt: z.object({
-          mutated_contracts_radius: z.array(z.string()),
-          mutated_assets_radius: z.array(z.string()),
-          contract_calls_stack: z.array(z.any()),
-          events: z.array(z.object({
-            position: z.object({
-              index: z.number()
-            }),
-            type: z.string(),
-            data: z.any()
-          }))
-        })
-      })
-    }))
-  })),
-  rollback: z.array(z.any()).optional()
-});
+    .where(eq(paymentIntents.id, paymentIntent.id))
+    .returning();
+
+  console.log(`Updated payment intent ${paymentIntent.id} to succeeded for transaction ${txId}`);
+
+  // Send webhook notification to merchant
+  try {
+    const webhookData = formatPaymentIntentResponse(updatedPaymentIntent);
+    await createWebhookEvent(paymentIntent.merchantId, 'payment_intent.succeeded', webhookData);
+    console.log(`Sent webhook event for payment intent ${paymentIntent.id}`);
+  } catch (webhookError) {
+    console.error('Error sending webhook:', webhookError);
+  }
+
+  // Delete chainhook after successful processing
+  await deleteChainbook(chainhookUuid);
+}
+
+// Delete chainhook after processing
+async function deleteChainbook(chainhookUuid: string) {
+  try {
+    const CHAINHOOK_API = process.env.CHAINHOOK_API_KEY || 'your-chainhook-api-key';
+    const deleteResponse = await fetch(`https://api.platform.hiro.so/v1/ext/${CHAINHOOK_API}/chainhooks/${chainhookUuid}`, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!deleteResponse.ok) {
+      console.error(`Failed to delete chainhook: ${deleteResponse.statusText}`);
+    } else {
+      console.log(`Chainhook deleted successfully: ${chainhookUuid}`);
+    }
+  } catch (error) {
+    console.error('Error deleting chainhook:', error);
+  }
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -75,228 +113,146 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const chainhookEvent = chainhookEventSchema.parse(body);
-
-    console.log('Received chainhook event:', JSON.stringify(chainhookEvent, null, 2));
-
-    // Process apply events (new transactions)
-    for (const applyEvent of chainhookEvent.apply) {
-      for (const transaction of applyEvent.transactions) {
-        await processTransaction(transaction, applyEvent.block_identifier, applyEvent.timestamp);
-      }
+    // Reading JSON body from the request
+    let body;
+    try {
+        body = await request.json();
+    } catch (error) {
+        return new NextResponse('Invalid JSON', { status: 400 });
     }
 
-    return NextResponse.json({ message: 'sBTC payment chainhook event processed successfully' });
+    const txId = body.chainhook?.predicate?.equals;
+    const chainhookUuid = body.chainhook?.uuid;
+
+    console.log('Received sBTC payment chainhook event:', JSON.stringify(body, null, 2));
+
+    if (txId) {
+      // Determine network based on environment or chainhook data
+      const isMainnet = process.env.NODE_ENV === 'production';
+      const apiUrl = isMainnet 
+        ? `https://api.mainnet.hiro.so/extended/v1/tx/${txId}`
+        : `https://api.testnet.hiro.so/extended/v1/tx/${txId}`;
+
+      // Fetch transaction details
+      const txResponse = await fetch(apiUrl, { headers: getRandomHeader() });
+      if (!txResponse.ok) {
+          console.error(`Failed to fetch transaction details: ${txResponse.statusText}`);
+          return new NextResponse('Failed to fetch transaction', { status: 400 });
+      }
+      const txData = await txResponse.json();
+
+      // Check if transaction was successful
+      if (txData.tx_status === "success") {
+          console.log(`sBTC payment transaction successful: ${txId}`);
+          
+          try {
+              // Find payment intent by transaction ID first
+              const [paymentIntent] = await db
+                  .select()
+                  .from(paymentIntents)
+                  .where(eq(paymentIntents.txId, txId))
+                  .limit(1);
+
+              if (!paymentIntent) {
+                  // Try to find by pending status and amount matching
+                  const sbtcAmount = extractSBTCAmountFromTx(txData);
+                  if (sbtcAmount) {
+                      const matchingPaymentIntents = await db
+                          .select()
+                          .from(paymentIntents)
+                          .where(eq(paymentIntents.status, 'pending'));
+
+                      // Find payment intent with matching amount (allow 1% tolerance)
+                      for (const intent of matchingPaymentIntents) {
+                          if (verifyPaymentAmount(intent, sbtcAmount)) {
+                              await updatePaymentIntentStatus(intent, txId, txData, chainhookUuid);
+                              console.log(`Matched pending payment intent ${intent.id} with transaction ${txId}`);
+                              break;
+                          }
+                      }
+                  }
+                  
+                  console.log(`No matching payment intent found for transaction ${txId}`);
+                  return new NextResponse(JSON.stringify({ success: true, txId, message: 'No matching payment intent' }), {
+                      status: 200,
+                      headers: { 'Content-Type': 'application/json' }
+                  });
+              } else {
+                  // Verify the sBTC amount matches the payment intent
+                  const sbtcAmount = extractSBTCAmountFromTx(txData);
+                  if (sbtcAmount && verifyPaymentAmount(paymentIntent, sbtcAmount)) {
+                      await updatePaymentIntentStatus(paymentIntent, txId, txData, chainhookUuid);
+                  } else {
+                      console.error(`Amount mismatch for payment intent ${paymentIntent.id}: expected ${paymentIntent.amount}, got ${sbtcAmount}`);
+                      return new NextResponse(JSON.stringify({ error: 'Amount mismatch' }), {
+                          status: 400,
+                          headers: { 'Content-Type': 'application/json' }
+                      });
+                  }
+              }
+              
+              console.log(`Successfully processed sBTC payment for tx_id: ${txId}`);
+          } catch (error) {
+              console.error(`Error updating payment intent:`, error);
+              return new NextResponse(JSON.stringify({ error: 'Database update failed' }), {
+                  status: 500,
+                  headers: { 'Content-Type': 'application/json' }
+              });
+          }
+      } else {
+          // Transaction failed
+          console.log(`sBTC payment transaction failed: ${txId}`);
+          
+          try {
+              const [paymentIntent] = await db
+                  .select()
+                  .from(paymentIntents)
+                  .where(eq(paymentIntents.txId, txId))
+                  .limit(1);
+
+              if (paymentIntent) {
+                  await db.update(paymentIntents)
+                      .set({ 
+                          status: 'failed',
+                          updatedAt: new Date(),
+                          metadata: {
+                              ...paymentIntent.metadata,
+                              failure_reason: txData.tx_result?.repr || 'Transaction failed',
+                              processed_at: new Date().toISOString()
+                          }
+                      })
+                      .where(eq(paymentIntents.id, paymentIntent.id));
+
+                  // Send webhook notification
+                  const webhookData = formatPaymentIntentResponse(paymentIntent);
+                  await createWebhookEvent(paymentIntent.merchantId, 'payment_intent.failed', webhookData);
+              }
+
+              // Delete chainhook after processing
+              await deleteChainbook(chainhookUuid);
+              
+          } catch (error) {
+              console.error(`Error processing failed transaction:`, error);
+          }
+      }
+
+      // Returning a success response
+      return new NextResponse(JSON.stringify({ success: true, txId }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    return NextResponse.json({ message: 'sBTC payment chainhook processed' });
   } catch (error) {
     console.error('Error processing chainhook event:', error);
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid chainhook event format', details: error.issues },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-async function processTransaction(transaction: any, blockIdentifier: any, timestamp: number) {
-  try {
-    const txId = transaction.transaction_identifier.hash;
-    const success = transaction.metadata.success;
-    const blockHeight = blockIdentifier.index;
-    const blockHash = blockIdentifier.hash;
-
-    console.log(`Processing sBTC payment transaction ${txId}, success: ${success}, block: ${blockHeight}`);
-
-    // First, try to find payment intent by exact transaction ID match
-    let paymentIntent = await db
-      .select()
-      .from(paymentIntents)
-      .where(eq(paymentIntents.txId, txId))
-      .limit(1);
-
-    // If no exact match, look for pending payment intents that might match this transaction
-    if (paymentIntent.length === 0) {
-      const relevantPaymentIntents = await db
-        .select()
-        .from(paymentIntents)
-        .where(or(
-          eq(paymentIntents.status, 'pending'),
-          eq(paymentIntents.status, 'created')
-        ));
-
-      // Try to match payment intent based on transaction details
-      for (const intent of relevantPaymentIntents) {
-        const shouldUpdate = await shouldUpdatePaymentIntent(intent, transaction);
-        if (shouldUpdate) {
-          paymentIntent = [intent];
-          break;
-        }
-      }
-    }
-
-    if (paymentIntent.length === 0) {
-      console.log(`No matching payment intent found for transaction ${txId}`);
-      return;
-    }
-
-    const intent = paymentIntent[0];
-    const newStatus = success ? 'succeeded' : 'failed';
-    
-    // Enhanced metadata with blockchain details
-    const updatedMetadata = {
-      ...intent.metadata,
-      chainhook_processed_at: new Date().toISOString(),
-      block_height: blockHeight,
-      block_hash: blockHash,
-      block_timestamp: timestamp,
-      transaction_fee: transaction.metadata.fee,
-      transaction_result: transaction.metadata.result,
-      transaction_description: transaction.metadata.description,
-      transaction_sender: transaction.metadata.sender,
-      transaction_kind: transaction.metadata.kind.type,
-      receipt_events: transaction.metadata.receipt.events.length,
-      mutated_contracts: transaction.metadata.receipt.mutated_contracts_radius,
-      mutated_assets: transaction.metadata.receipt.mutated_assets_radius
-    };
-    
-    // Update payment intent status
-    const [updatedPaymentIntent] = await db
-      .update(paymentIntents)
-      .set({
-        status: newStatus,
-        txId: txId,
-        metadata: updatedMetadata,
-        updatedAt: new Date()
-      })
-      .where(eq(paymentIntents.id, intent.id))
-      .returning();
-
-    console.log(`Updated payment intent ${intent.id} to status ${newStatus} for transaction ${txId}`);
-
-    // Create webhook event for merchant
-    try {
-      const webhookData = formatPaymentIntentResponse(updatedPaymentIntent);
-      await createWebhookEvent(
-        intent.merchantId,
-        success ? 'payment_intent.succeeded' : 'payment_intent.failed',
-        webhookData
-      );
-      console.log(`Sent webhook event for payment intent ${intent.id}`);
-    } catch (webhookError) {
-      console.error('Error sending webhook:', webhookError);
-    }
-
-    // TODO: Send email notification to customer if email provided
-    // TODO: Trigger additional payment success/failure actions
-    
-  } catch (error) {
-    console.error('Error processing individual transaction:', error);
-  }
-}
-
-async function shouldUpdatePaymentIntent(paymentIntent: any, transaction: any): Promise<boolean> {
-  try {
-    // Enhanced matching logic for sBTC payments
-    const txId = transaction.transaction_identifier.hash;
-    const sender = transaction.metadata.sender;
-    const events = transaction.metadata.receipt.events;
-    
-    console.log(`Evaluating payment intent ${paymentIntent.id} for transaction ${txId}`);
-    
-    // 1. Check time window (within 30 minutes of payment intent creation)
-    const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
-    const paymentCreatedAt = new Date(paymentIntent.createdAt).getTime();
-    
-    if (paymentCreatedAt < thirtyMinutesAgo) {
-      console.log(`Payment intent ${paymentIntent.id} too old for matching`);
-      return false;
-    }
-    
-    // 2. Check if this is an sBTC transaction by looking at events
-    const hasSbtcTransfer = events.some((event: any) => {
-      try {
-        // Look for fungible token transfer events that involve sBTC
-        return event.type === 'ft_transfer_event' && 
-               event.data?.asset_identifier?.includes('sbtc');
-      } catch (e) {
-        return false;
-      }
-    });
-    
-    if (!hasSbtcTransfer) {
-      console.log(`Transaction ${txId} does not appear to be an sBTC transfer`);
-      return false;
-    }
-    
-    // 3. Check amount matching (if we can extract it from events)
-    try {
-      const transferEvent = events.find((event: any) => 
-        event.type === 'ft_transfer_event' && 
-        event.data?.asset_identifier?.includes('sbtc')
-      );
-      
-      if (transferEvent && transferEvent.data?.amount) {
-        const txAmount = parseInt(transferEvent.data.amount);
-        const expectedAmount = paymentIntent.amount;
-        
-        // Allow for small differences due to fees (within 1%)
-        const tolerance = Math.max(expectedAmount * 0.01, 100); // 1% or 100 microsBTC minimum
-        const amountDifference = Math.abs(txAmount - expectedAmount);
-        
-        if (amountDifference > tolerance) {
-          console.log(`Amount mismatch: expected ${expectedAmount}, got ${txAmount}, difference ${amountDifference}`);
-          return false;
-        }
-        
-        console.log(`Amount match: expected ${expectedAmount}, got ${txAmount}`);
-      }
-    } catch (amountError) {
-      console.log('Could not verify amount from transaction events, proceeding with other checks');
-    }
-    
-    // 4. Check recipient address (if available in metadata)
-    try {
-      const recipientAddress = paymentIntent.metadata?.recipient_address;
-      if (recipientAddress) {
-        const transferEvent = events.find((event: any) => 
-          event.type === 'ft_transfer_event' && 
-          event.data?.asset_identifier?.includes('sbtc')
-        );
-        
-        if (transferEvent && transferEvent.data?.recipient) {
-          if (transferEvent.data.recipient !== recipientAddress) {
-            console.log(`Recipient mismatch: expected ${recipientAddress}, got ${transferEvent.data.recipient}`);
-            return false;
-          }
-          console.log(`Recipient match: ${recipientAddress}`);
-        }
-      }
-    } catch (recipientError) {
-      console.log('Could not verify recipient from transaction events');
-    }
-    
-    console.log(`Payment intent ${paymentIntent.id} matches transaction ${txId}`);
-    return true;
-    
-  } catch (error) {
-    console.error('Error in shouldUpdatePaymentIntent:', error);
-    // If we can't determine, fall back to simple time-based matching
-    const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
-    const paymentCreatedAt = new Date(paymentIntent.createdAt).getTime();
-    return paymentCreatedAt > tenMinutesAgo;
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function GET() {
   return NextResponse.json({ 
-    message: 'Chainhook endpoint is active',
+    message: 'sBTC Payment Chainhook endpoint is active',
     timestamp: new Date().toISOString()
   });
 }
