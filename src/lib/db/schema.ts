@@ -40,7 +40,7 @@ export const products = pgTable('products', {
   type: productTypeEnum('type').default('one_time').notNull(),
   price: bigint('price', { mode: 'number' }).notNull(), // Price in microsBTC
   priceUsd: decimal('price_usd', { precision: 10, scale: 2 }), // USD equivalent
-  currency: varchar('currency', { length: 3 }).default('sbtc').notNull(),
+  currency: varchar('currency', { length: 10 }).default('sbtc').notNull(),
   images: jsonb('images').$type<string[]>().default([]),
   metadata: jsonb('metadata'),
   active: boolean('active').default(true).notNull(),
@@ -54,7 +54,7 @@ export const paymentIntents = pgTable('payment_intents', {
   productId: varchar('product_id', { length: 255 }).references(() => products.id),
   amount: bigint('amount', { mode: 'number' }).notNull(),
   amountUsd: decimal('amount_usd', { precision: 10, scale: 2 }),
-  currency: varchar('currency', { length: 3 }).default('sbtc').notNull(),
+  currency: varchar('currency', { length: 10 }).default('sbtc').notNull(),
   status: paymentStatusEnum('status').default('created').notNull(),
   customerAddress: varchar('customer_address', { length: 255 }),
   description: text('description'),
