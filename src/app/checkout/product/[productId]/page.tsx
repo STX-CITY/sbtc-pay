@@ -16,22 +16,35 @@ interface Product {
 export default function ProductCheckoutPage({ 
   params 
 }: { 
-  params: { productId: string } 
+  params: Promise<{ productId: string }> 
 }) {
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProductAndCreatePaymentIntent();
-  }, [params.productId]);
+    const getParams = async () => {
+      const resolvedParams = await params;
+      setProductId(resolvedParams.productId);
+    };
+    getParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (productId) {
+      fetchProductAndCreatePaymentIntent();
+    }
+  }, [productId]);
 
   const fetchProductAndCreatePaymentIntent = async () => {
+    if (!productId) return;
+    
     try {
       // First fetch the product (public endpoint)
-      const productResponse = await fetch(`/api/v1/public/products/${params.productId}`);
+      const productResponse = await fetch(`/api/v1/public/products/${productId}`);
       
       if (!productResponse.ok) {
         throw new Error('Product not found');

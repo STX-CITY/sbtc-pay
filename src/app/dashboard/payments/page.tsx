@@ -11,20 +11,31 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'succeeded' | 'pending' | 'failed'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
 
   useEffect(() => {
-    fetchPayments();
+    fetchPayments(1);
   }, []);
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (page: number = 1) => {
     try {
-      const response = await fetch('/api/v1/payment_intents', {
+      setLoading(true);
+      const offset = (page - 1) * pageSize;
+      const response = await fetch(`/api/v1/payment_intents?limit=${pageSize}&offset=${offset}`, {
         headers: getAuthHeaders()
       });
       
       if (response.ok) {
         const data = await response.json();
-        setPayments(data.data || []);
+        const newPayments = data.data || [];
+        
+        setPayments(newPayments);
+        setHasMore(data.has_more || false);
+        setTotalCount(data.total || newPayments.length);
+        setCurrentPage(page);
       } else {
         console.error('Failed to fetch payments:', response.statusText);
       }
@@ -33,6 +44,22 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const goToNextPage = () => {
+    if (!loading && hasMore) {
+      fetchPayments(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (!loading && currentPage > 1) {
+      fetchPayments(currentPage - 1);
+    }
+  };
+
+  const refresh = () => {
+    fetchPayments(currentPage);
   };
 
   const filteredPayments = payments.filter(payment => {
@@ -119,7 +146,12 @@ export default function PaymentsPage() {
           loading={loading}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          onRefresh={fetchPayments}
+          onRefresh={refresh}
+          currentPage={currentPage}
+          hasMore={hasMore}
+          totalCount={totalCount}
+          onNextPage={goToNextPage}
+          onPreviousPage={goToPreviousPage}
         />
       </div>
     </div>

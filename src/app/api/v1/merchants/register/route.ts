@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const webhookSecret = generateWebhookSecret();
 
     // Create new merchant - auto-approved
-    const newMerchant = {
+    const newMerchant: any = {
       name: validatedData.name,
       email: validatedData.email,
       stacksAddress: validatedData.stacksAddress,
@@ -70,6 +70,14 @@ export async function POST(request: NextRequest) {
       webhookUrl: validatedData.webhookUrl,
       webhookSecret,
     };
+
+    // Try to set recipientAddress if the column exists
+    try {
+      newMerchant.recipientAddress = validatedData.stacksAddress;
+    } catch (error) {
+      // Column might not exist yet, continue without it
+      console.log('recipientAddress column not available yet');
+    }
 
     const [createdMerchant] = await db
       .insert(merchants)

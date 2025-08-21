@@ -9,6 +9,11 @@ interface PaymentsTableProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
   onRefresh: () => void;
+  currentPage: number;
+  hasMore: boolean;
+  totalCount: number;
+  onNextPage: () => void;
+  onPreviousPage: () => void;
 }
 
 export function PaymentsTable({ 
@@ -16,7 +21,12 @@ export function PaymentsTable({
   loading, 
   searchTerm, 
   onSearchChange,
-  onRefresh 
+  onRefresh,
+  currentPage,
+  hasMore,
+  totalCount,
+  onNextPage,
+  onPreviousPage
 }: PaymentsTableProps) {
   const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
   const [sortField, setSortField] = useState<'date' | 'amount'>('date');
@@ -300,14 +310,25 @@ export function PaymentsTable({
       {payments.length > 0 && (
         <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
           <div className="text-sm text-gray-700">
-            Showing <span className="font-medium">1</span> to <span className="font-medium">{Math.min(10, payments.length)}</span> of{' '}
-            <span className="font-medium">{payments.length}</span> results
+            Showing <span className="font-medium">{((currentPage - 1) * 10) + 1}</span> to <span className="font-medium">{((currentPage - 1) * 10) + payments.length}</span> of{' '}
+            <span className="font-medium">{totalCount}</span> results
           </div>
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50" disabled>
+            <button 
+              onClick={onPreviousPage}
+              disabled={currentPage === 1 || loading}
+              className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Previous
             </button>
-            <button className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">
+            <span className="px-3 py-1 text-sm text-gray-700">
+              Page {currentPage}
+            </span>
+            <button 
+              onClick={onNextPage}
+              disabled={!hasMore || loading}
+              className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Next
             </button>
           </div>

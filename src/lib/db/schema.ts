@@ -29,6 +29,7 @@ export const merchants = pgTable('merchants', {
   webhookUrl: varchar('webhook_url', { length: 500 }),
   webhookSecret: varchar('webhook_secret', { length: 255 }),
   stacksAddress: varchar('stacks_address', { length: 255 }),
+  recipientAddress: varchar('recipient_address', { length: 255 }), // Address to receive payments
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

@@ -7,6 +7,7 @@ interface MerchantProfile {
   name: string;
   email: string;
   stacksAddress: string;
+  recipientAddress?: string;
   webhookUrl?: string;
   apiKeyTest: string;
   created: number;
@@ -22,6 +23,7 @@ export function MerchantProfile() {
   const [editData, setEditData] = useState({
     name: '',
     email: '',
+    recipientAddress: '',
     webhookUrl: ''
   });
 
@@ -48,6 +50,7 @@ export function MerchantProfile() {
       setEditData({
         name: data.name,
         email: data.email,
+        recipientAddress: data.recipientAddress || data.stacksAddress,
         webhookUrl: data.webhookUrl || ''
       });
     } catch (err) {
@@ -160,6 +163,22 @@ export function MerchantProfile() {
                 onChange={(e) => setEditData(prev => ({ ...prev, email: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Recipient Address
+              </label>
+              <input
+                type="text"
+                value={editData.recipientAddress}
+                onChange={(e) => setEditData(prev => ({ ...prev, recipientAddress: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="ST1234..."
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Stacks address where payments will be sent. Defaults to your connected wallet address.
+              </p>
             </div>
 
             <div>

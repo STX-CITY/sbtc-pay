@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 const updateProfileSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   email: z.string().email().optional(),
+  recipientAddress: z.string().min(1).max(255).optional(),
   webhookUrl: z.string().url().optional().or(z.literal('')),
 });
 
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
       name: merchant.name,
       email: merchant.email,
       stacksAddress: merchant.stacksAddress,
+      recipientAddress: merchant.recipientAddress || merchant.stacksAddress, // Fallback to stacksAddress
       webhookUrl: merchant.webhookUrl,
       apiKeyTest: merchant.apiKeyTest,
       // Don't return live API key for security
@@ -74,6 +76,9 @@ export async function POST(request: NextRequest) {
     if (validatedData.email !== undefined) {
       updateData.email = validatedData.email;
     }
+    if (validatedData.recipientAddress !== undefined) {
+      updateData.recipientAddress = validatedData.recipientAddress;
+    }
     if (validatedData.webhookUrl !== undefined) {
       updateData.webhookUrl = validatedData.webhookUrl || null;
     }
@@ -89,6 +94,7 @@ export async function POST(request: NextRequest) {
       name: updatedMerchant.name,
       email: updatedMerchant.email,
       stacksAddress: updatedMerchant.stacksAddress,
+      recipientAddress: updatedMerchant.recipientAddress || updatedMerchant.stacksAddress, // Fallback to stacksAddress
       webhookUrl: updatedMerchant.webhookUrl,
       apiKeyTest: updatedMerchant.apiKeyTest,
       created: Math.floor(updatedMerchant.createdAt.getTime() / 1000),

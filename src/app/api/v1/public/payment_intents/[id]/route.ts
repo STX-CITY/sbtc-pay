@@ -58,7 +58,8 @@ export async function GET(
     const result = await db
       .select({
         paymentIntent: paymentIntents,
-        merchantStacksAddress: merchants.stacksAddress
+        merchantStacksAddress: merchants.stacksAddress,
+        merchantRecipientAddress: merchants.recipientAddress
       })
       .from(paymentIntents)
       .leftJoin(merchants, eq(paymentIntents.merchantId, merchants.id))
@@ -72,7 +73,7 @@ export async function GET(
       );
     }
 
-    const { paymentIntent, merchantStacksAddress } = result[0];
+    const { paymentIntent, merchantStacksAddress, merchantRecipientAddress } = result[0];
     
     // If payment has a tx_id and status is pending, re-check with Hiro API
     // This is a fallback in case chainhook has an error
@@ -124,7 +125,7 @@ export async function GET(
       status: effectiveStatus, // Use the effective status (may be updated from Hiro API)
       description: paymentIntent.description,
       customer_address: paymentIntent.customerAddress,
-      recipient_address: merchantStacksAddress, // Where customer should send payment
+      recipient_address: merchantRecipientAddress || merchantStacksAddress, // Where customer should send payment
       tx_id: paymentIntent.txId, // Include tx_id if available
       created: Math.floor(paymentIntent.createdAt.getTime() / 1000),
       

@@ -25,7 +25,7 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
   const fetchPaymentIntent = async () => {
     try {
       const response = await fetch(`/api/v1/public/payment_intents/${paymentIntentId}`);
-      
+      debugger;
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error?.message || 'Failed to fetch payment intent');

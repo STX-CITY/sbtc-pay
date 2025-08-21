@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db, paymentIntents } from '@/lib/db';
-import { authenticateRequest } from '@/lib/auth/middleware';
+import { db, paymentIntents, merchants } from '@/lib/db';
 import { formatPaymentIntentResponse } from '@/lib/payments/utils';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -11,33 +10,32 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const auth = await authenticateRequest(request);
-    if (!auth) {
-      return NextResponse.json(
-        { error: { type: 'authentication_error', message: 'Invalid authentication' } },
-        { status: 401 }
-      );
-    }
 
-    const paymentIntent = await db
-      .select()
+    const result = await db
+      .select({
+        paymentIntent: paymentIntents,
+        merchantRecipientAddress: merchants.recipientAddress,
+        merchantStacksAddress: merchants.stacksAddress
+      })
       .from(paymentIntents)
-      .where(
-        and(
-          eq(paymentIntents.id, id),
-          eq(paymentIntents.merchantId, auth.merchantId)
-        )
-      )
+      .leftJoin(merchants, eq(paymentIntents.merchantId, merchants.id))
+      .where(eq(paymentIntents.id, id))
       .limit(1);
 
-    if (paymentIntent.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: { type: 'invalid_request_error', message: 'Payment intent not found' } },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(formatPaymentIntentResponse(paymentIntent[0]));
+    const { paymentIntent, merchantRecipientAddress, merchantStacksAddress } = result[0];
+    const formattedPaymentIntent = formatPaymentIntentResponse(paymentIntent);
+    
+    return NextResponse.json({
+      ...formattedPaymentIntent,
+      recipient_address: merchantRecipientAddress || merchantStacksAddress
+    });
   } catch (error) {
     console.error('Error fetching payment intent:', error);
     return NextResponse.json(
@@ -61,7 +59,6 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
- 
 
     const body = await request.json();
     const validatedData = updatePaymentIntentSchema.parse(body);
@@ -86,7 +83,23 @@ export async function POST(
       );
     }
 
-    return NextResponse.json(formatPaymentIntentResponse(updatedPaymentIntent));
+    // Get merchant data to include recipient address
+    const merchantResult = await db
+      .select({
+        recipientAddress: merchants.recipientAddress,
+        stacksAddress: merchants.stacksAddress
+      })
+      .from(merchants)
+      .where(eq(merchants.id, updatedPaymentIntent.merchantId))
+      .limit(1);
+
+    const merchant = merchantResult[0];
+    const formattedPaymentIntent = formatPaymentIntentResponse(updatedPaymentIntent);
+    
+    return NextResponse.json({
+      ...formattedPaymentIntent,
+      recipient_address: merchant?.recipientAddress || merchant?.stacksAddress
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

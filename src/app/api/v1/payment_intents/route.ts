@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db, paymentIntents, products } from '@/lib/db';
+import { db, paymentIntents, products, merchants } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
 import { generatePaymentIntentId, formatPaymentIntentResponse, getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
 import { eq } from 'drizzle-orm';
@@ -182,14 +182,25 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
     const merchantPaymentIntents = await db
-      .select()
+      .select({
+        paymentIntent: paymentIntents,
+        merchantRecipientAddress: merchants.recipientAddress,
+        merchantStacksAddress: merchants.stacksAddress
+      })
       .from(paymentIntents)
+      .leftJoin(merchants, eq(paymentIntents.merchantId, merchants.id))
       .where(eq(paymentIntents.merchantId, auth.merchantId))
       .limit(limit)
       .offset(offset)
       .orderBy(paymentIntents.createdAt);
 
-    const data = merchantPaymentIntents.map(formatPaymentIntentResponse);
+    const data = merchantPaymentIntents.map(({ paymentIntent, merchantRecipientAddress, merchantStacksAddress }) => {
+      const formattedPaymentIntent = formatPaymentIntentResponse(paymentIntent);
+      return {
+        ...formattedPaymentIntent,
+        recipient_address: merchantRecipientAddress || merchantStacksAddress
+      };
+    });
 
     return NextResponse.json({
       object: 'list',
