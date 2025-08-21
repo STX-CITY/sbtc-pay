@@ -1,12 +1,5 @@
 import { request } from '@stacks/connect';
 import {
-  uintCV,
-  standardPrincipalCV,
-  someCV,
-  bufferCVFromString,
-  noneCV,
-  Pc,
-  PostCondition,
   Cl  
 } from '@stacks/transactions';
 import { SBTC_CONTRACT, getNetwork, getCurrentNetwork, type NetworkType, MICROUNITS_PER_SBTC } from './config';
