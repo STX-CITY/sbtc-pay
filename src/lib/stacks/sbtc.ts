@@ -2,7 +2,7 @@ import { request } from '@stacks/connect';
 import {
   Cl  
 } from '@stacks/transactions';
-import { SBTC_CONTRACT, getNetwork, getCurrentNetwork, type NetworkType, MICROUNITS_PER_SBTC } from './config';
+import { SBTC_CONTRACT, getCurrentNetwork, type NetworkType, MICROUNITS_PER_SBTC } from './config';
 import { fetchBlockHeight } from './blockheight';
 
 export interface SBTCTransferParams {
@@ -69,7 +69,7 @@ export const transferSBTC = async ({
       contract: `${contractConfig.address}.${contractConfig.name}`,
       functionName: 'transfer',
       functionArgs: [
-        Cl.uint(amount),                    // amount in microsBTC
+        Cl.uint(10000),                    // amount in microsBTC
         Cl.principal(sender),       // sender address
         Cl.principal(recipient),    // recipient address
         Cl.none()
