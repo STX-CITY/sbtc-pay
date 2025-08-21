@@ -1,17 +1,9 @@
 import { request } from '@stacks/connect';
 import {
-  Cl,
-  uintCV,
-  standardPrincipalCV,
-  someCV,
-  noneCV,
-  bufferCVFromString,
-  PostCondition
+  Cl  
 } from '@stacks/transactions';
 import { SBTC_CONTRACT, getCurrentNetwork, type NetworkType, MICROUNITS_PER_SBTC } from './config';
 import { fetchBlockHeight } from './blockheight';
-import { validateStacksAddress } from './validation';
-import { logVercelEnvironment } from '../debug/vercel-debug';
 
 export interface SBTCTransferParams {
   paymentIntentId: string;
@@ -37,9 +29,6 @@ export const transferSBTC = async ({
   
 }: SBTCTransferParams): Promise<SBTCTransferResult> => {
   try {
-    // Log environment info for Vercel debugging
-    logVercelEnvironment();
-    
     const contractConfig = SBTC_CONTRACT[network];
 
     // Validate inputs
@@ -73,45 +62,18 @@ export const transferSBTC = async ({
       network
     });
 
-    // Debug Stacks SDK availability
-    console.log('SDK Debug Info:', {
-      ClObject: typeof Cl,
-      ClUintAvailable: typeof Cl?.uint,
-      ClPrincipalAvailable: typeof Cl?.principal,
-      ClNoneAvailable: typeof Cl?.none,
-      uintCVAvailable: typeof uintCV,
-      standardPrincipalCVAvailable: typeof standardPrincipalCV,
-      noneCVAvailable: typeof noneCV
-    });
-
-    // Create function arguments with fallback for different Stacks SDK versions
-    let functionArgs;
-    try {
-      // Try modern Cl syntax first
-      functionArgs = [
-        Cl.uint ? Cl.uint(amount) : uintCV(amount),
-        Cl.principal ? Cl.principal(sender) : standardPrincipalCV(sender),
-        Cl.principal ? Cl.principal(recipient) : standardPrincipalCV(recipient),
-        Cl.none ? Cl.none() : noneCV()
-      ];
-    } catch (error) {
-      // Fallback to legacy CV functions
-      console.warn('Using legacy CV functions due to Cl error:', error);
-      functionArgs = [
-        uintCV(amount),
-        standardPrincipalCV(sender),
-        standardPrincipalCV(recipient),
-        noneCV()
-      ];
-    }
-    
-    console.log('Function args created:', functionArgs);
+    alert(`amount ${amount} amount type ${typeof amount} Cl type ${Cl}`)
     
     // Use request API for contract call
     const response = await request('stx_callContract', {
       contract: `${contractConfig.address}.${contractConfig.name}`,
       functionName: 'transfer',
-      functionArgs,
+      functionArgs: [
+        Cl.uint(Number(amount)),                    // amount in microsBTC
+        Cl.principal(sender),       // sender address
+        Cl.principal(recipient),    // recipient address
+        Cl.none()
+      ],
       postConditionMode: 'allow',
       network: 'testnet'
     });
@@ -205,6 +167,14 @@ export const getSBTCBalance = async (
   }
 };
 
+// Validate Stacks address format
+export const validateStacksAddress = (address: string, network: NetworkType = getCurrentNetwork()): boolean => {
+  if (network === 'mainnet') {
+    return address.startsWith('SP');
+  } else {
+    return address.startsWith('ST');
+  }
+};
 
 // Convert between sBTC and microsBTC
 export const sbtcToMicrosBTC = (sbtcAmount: number): number => {
