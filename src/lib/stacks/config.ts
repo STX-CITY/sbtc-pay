@@ -53,4 +53,4 @@ export const NETWORK_CONFIG = {
 };
 
 // sBTC has 8 decimal places (100,000,000 microunits = 1 sBTC)
-export const MICROUNITS_PER_SBTC = 100_000_000;
+export const MICROUNITS_PER_SBTC = 100000000;
