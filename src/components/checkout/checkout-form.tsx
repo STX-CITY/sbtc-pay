@@ -16,6 +16,7 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'manual'>('wallet');
 
   useEffect(() => {
     fetchPaymentIntent();
@@ -66,6 +67,15 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
 
   const handlePaymentError = (error: string) => {
     setError(error);
+  };
+
+  const handleManualPaymentConfirm = () => {
+    // Redirect to checkout page to monitor transaction status
+    window.location.href = `/checkout/${paymentIntentId}?status=tx_broadcast`;
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
   };
 
   const handleEmailUpdate = async (email: string) => {
@@ -232,35 +242,142 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
         </div>
       </div>
 
-      {/* Wallet Connection */}
+      {/* Payment Method Selection */}
       <div className="border rounded-lg p-4">
-        <h3 className="font-medium text-gray-900 mb-3">Connect Your Wallet</h3>
-        <WalletConnect 
-          onConnect={handleWalletConnect}
-          onDisconnect={handleWalletDisconnect}
-        />
+        <h3 className="font-medium text-gray-900 mb-3">Choose Payment Method</h3>
+        <div className="space-y-3">
+          <div className="flex items-center">
+            <input
+              id="wallet"
+              name="payment-method"
+              type="radio"
+              checked={paymentMethod === 'wallet'}
+              onChange={() => setPaymentMethod('wallet')}
+              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+            />
+            <label htmlFor="wallet" className="ml-3 text-sm font-medium text-gray-700">
+              Connect Wallet & Pay Automatically
+            </label>
+          </div>
+          <div className="flex items-center">
+            <input
+              id="manual"
+              name="payment-method"
+              type="radio"
+              checked={paymentMethod === 'manual'}
+              onChange={() => setPaymentMethod('manual')}
+              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+            />
+            <label htmlFor="manual" className="ml-3 text-sm font-medium text-gray-700">
+              Manual Payment (Copy Address & Send Manually)
+            </label>
+          </div>
+        </div>
       </div>
 
-      {/* Payment Form */}
-      {walletAddress && paymentIntent.recipient_address && (
-        <PaymentForm
-          paymentIntentId={paymentIntent.id}
-          amount={paymentIntent.amount}
-          recipientAddress={paymentIntent.recipient_address}
-          onSuccess={handlePaymentSuccess}
-          onError={handlePaymentError}
-        />
+      {paymentMethod === 'wallet' && (
+        <>
+          {/* Wallet Connection */}
+          <div className="border rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-3">Connect Your Wallet</h3>
+            <WalletConnect 
+              onConnect={handleWalletConnect}
+              onDisconnect={handleWalletDisconnect}
+            />
+          </div>
+
+          {/* Payment Form */}
+          {walletAddress && paymentIntent.recipient_address && (
+            <PaymentForm
+              paymentIntentId={paymentIntent.id}
+              amount={paymentIntent.amount}
+              recipientAddress={paymentIntent.recipient_address}
+              onSuccess={handlePaymentSuccess}
+              onError={handlePaymentError}
+            />
+          )}
+          
+          {walletAddress && !paymentIntent.recipient_address && (
+            <div className="text-center text-red-500 py-4">
+              Merchant address not configured. Payment cannot proceed.
+            </div>
+          )}
+
+          {!walletAddress && (
+            <div className="text-center text-gray-500 py-4">
+              Please connect your wallet to continue with the payment
+            </div>
+          )}
+        </>
       )}
-      
-      {walletAddress && !paymentIntent.recipient_address && (
-        <div className="text-center text-red-500 py-4">
-          Merchant address not configured. Payment cannot proceed.
+
+      {paymentMethod === 'manual' && paymentIntent.recipient_address && (
+        <div className="border rounded-lg p-4">
+          <h3 className="font-medium text-gray-900 mb-4">Manual Payment Instructions</h3>
+          
+          <div className="space-y-4">
+            {/* Recipient Address */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Recipient Address
+              </label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 px-3 py-2 bg-white border rounded text-sm font-mono break-all">
+                  {paymentIntent.recipient_address}
+                </code>
+                <button
+                  onClick={() => copyToClipboard(paymentIntent.recipient_address || '')}
+                  className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm whitespace-nowrap"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Amount to Send
+              </label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 px-3 py-2 bg-white border rounded text-sm font-mono">
+                  {(paymentIntent.amount / 100_000_000).toFixed(8)} sBTC
+                </code>
+                <button
+                  onClick={() => copyToClipboard((paymentIntent.amount / 100_000_000).toFixed(8))}
+                  className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm whitespace-nowrap"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-yellow-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div className="text-sm text-yellow-800">
+                  <strong>Important:</strong> Please send exactly the amount shown above to the recipient address. After sending, click the "I Already Sent" button below to proceed to payment verification.
+                </div>
+              </div>
+            </div>
+
+            {/* Confirm Payment Button */}
+            <button
+              onClick={handleManualPaymentConfirm}
+              className="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              I Already Sent the Payment
+            </button>
+          </div>
         </div>
       )}
 
-      {!walletAddress && (
-        <div className="text-center text-gray-500 py-4">
-          Please connect your wallet to continue with the payment
+      {paymentMethod === 'manual' && !paymentIntent.recipient_address && (
+        <div className="text-center text-red-500 py-4">
+          Merchant address not configured. Payment cannot proceed.
         </div>
       )}
     </div>
