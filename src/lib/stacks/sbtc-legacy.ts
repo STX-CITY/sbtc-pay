@@ -94,6 +94,7 @@ export const transferSBTCLegacy = async ({
           })
         });
         
+        
         if (updateResponse.ok) {
           console.log(`Updated payment intent ${paymentIntentId} with transaction ID: ${response.txid}`);
         } else {
