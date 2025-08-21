@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SBTCGateway, PaymentIntent, CreatePaymentIntentRequest } from '@sbtc-gateway/js';
+import { SBTCGateway, PaymentIntent, CreatePaymentIntentRequest } from '../../js-sdk/dist/index';
 
 interface SBTCProviderProps {
   apiKey: string;
@@ -208,4 +208,4 @@ export function PaymentStatus({
   );
 }
 
-export * from '@sbtc-gateway/js';
+export * from '../../js-sdk/dist/index';

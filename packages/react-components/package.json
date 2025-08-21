@@ -16,9 +16,6 @@
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"
   },
-  "dependencies": {
-    "@sbtc-gateway/js": "1.0.0"
-  },
   "devDependencies": {
     "typescript": "^5.0.0",
     "@types/react": "^18.0.0",

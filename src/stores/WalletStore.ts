@@ -254,16 +254,7 @@ const useWalletStore = create(
       }
     }),
     {
-      name: 'wallet-storage',
-      partialize: (state) => ({
-        userData: state.userData,
-        network: state.network,
-        currentAddress: state.currentAddress,
-        publicKey: state.publicKey,
-        isConnected: state.isConnected,
-        blockHeight: state.blockHeight,
-        balance: state.balance
-      })
+      name: 'wallet-storage'
     }
   )
 );

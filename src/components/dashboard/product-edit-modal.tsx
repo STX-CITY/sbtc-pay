@@ -2,16 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '@/lib/auth/client';
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  price_usd?: number;
-  images?: string[];
-  active: boolean;
-}
+import { Product } from '@/types/products';
 
 interface ProductEditModalProps {
   product: Product | null;

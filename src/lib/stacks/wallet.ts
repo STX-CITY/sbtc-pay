@@ -23,7 +23,6 @@ export const connectWallet = async (config: WalletConfig): Promise<WalletConnect
           name: config.appName || 'sBTC Payment Gateway',
           icon: config.appIcon || '/icon.png'
         },
-        network,
         onFinish: (data: any) => {
           console.log('Wallet connected successfully:', data);
           const networkType = config.network || getCurrentNetwork();

@@ -5,20 +5,7 @@ import Link from 'next/link';
 import { formatSBTCAmount } from '@/lib/stacks/sbtc';
 import { getAuthHeaders } from '@/lib/auth/client';
 import { ProductEditModal } from '@/components/dashboard/product-edit-modal';
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  type: string;
-  price: number;
-  price_usd?: number;
-  currency: string;
-  images?: string[];
-  active: boolean;
-  created: number;
-  updated: number;
-}
+import { Product } from '@/types/products';
 
 export function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
