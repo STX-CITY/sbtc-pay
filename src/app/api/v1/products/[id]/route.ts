@@ -4,6 +4,7 @@ import { db, products } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
 import { eq, and } from 'drizzle-orm';
 import { getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
+import { createWebhookEvent } from '@/lib/webhooks/sender';
 
 const updateProductSchema = z.object({
   name: z.string().min(1).max(255).optional(),
@@ -132,6 +133,28 @@ export async function POST(
       );
     }
 
+    // Send webhook event for product update
+    try {
+      const productData = {
+        id: updatedProduct.id,
+        name: updatedProduct.name,
+        description: updatedProduct.description,
+        type: updatedProduct.type,
+        price: updatedProduct.price,
+        price_usd: updatedProduct.priceUsd ? parseFloat(updatedProduct.priceUsd) : undefined,
+        currency: updatedProduct.currency,
+        images: updatedProduct.images,
+        metadata: updatedProduct.metadata,
+        active: updatedProduct.active,
+        created: Math.floor(updatedProduct.createdAt.getTime() / 1000),
+        updated: Math.floor(updatedProduct.updatedAt.getTime() / 1000)
+      };
+      
+      await createWebhookEvent(auth.merchantId, 'product.updated', productData);
+    } catch (webhookError) {
+      console.error('Failed to send product.updated webhook:', webhookError);
+    }
+
     return NextResponse.json({
       id: updatedProduct.id,
       name: updatedProduct.name,
@@ -191,6 +214,29 @@ export async function DELETE(
         { error: { type: 'resource_missing', message: 'Product not found' } },
         { status: 404 }
       );
+    }
+
+    // Send webhook event for product deletion
+    try {
+      const productData = {
+        id: deletedProduct.id,
+        name: deletedProduct.name,
+        description: deletedProduct.description,
+        type: deletedProduct.type,
+        price: deletedProduct.price,
+        price_usd: deletedProduct.priceUsd ? parseFloat(deletedProduct.priceUsd) : undefined,
+        currency: deletedProduct.currency,
+        images: deletedProduct.images,
+        metadata: deletedProduct.metadata,
+        active: deletedProduct.active,
+        created: Math.floor(deletedProduct.createdAt.getTime() / 1000),
+        updated: Math.floor(deletedProduct.updatedAt.getTime() / 1000),
+        deleted: true
+      };
+      
+      await createWebhookEvent(auth.merchantId, 'product.deleted', productData);
+    } catch (webhookError) {
+      console.error('Failed to send product.deleted webhook:', webhookError);
     }
 
     return NextResponse.json({

@@ -60,7 +60,7 @@ export async function POST(
         txId: mockTxId,
         updatedAt: new Date(),
       })
-      .where(eq(paymentIntents.id, params.id))
+      .where(eq(paymentIntents.id, (await params).id))
       .returning();
 
     // Create webhook event

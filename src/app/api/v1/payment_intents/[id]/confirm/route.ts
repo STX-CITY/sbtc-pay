@@ -66,7 +66,7 @@ export async function POST(
         customerAddress: validatedData.customer_address || paymentIntent.customerAddress,
         updatedAt: new Date(),
       })
-      .where(eq(paymentIntents.id, params.id))
+      .where(eq(paymentIntents.id, (await params).id))
       .returning();
 
     // Create webhook event for status change

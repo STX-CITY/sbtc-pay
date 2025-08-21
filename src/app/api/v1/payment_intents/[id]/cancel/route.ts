@@ -54,7 +54,7 @@ export async function POST(
         status: 'canceled',
         updatedAt: new Date(),
       })
-      .where(eq(paymentIntents.id, params.id))
+      .where(eq(paymentIntents.id, (await params).id))
       .returning();
 
     return NextResponse.json(formatPaymentIntentResponse(canceledPaymentIntent));

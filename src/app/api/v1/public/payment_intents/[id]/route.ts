@@ -49,10 +49,10 @@ async function checkTransactionStatus(txId: string): Promise<'pending' | 'succee
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const paymentIntentId = params.id;
+    const { id: paymentIntentId } = await params;
 
     // Join with merchants to get the recipient address
     const result = await db

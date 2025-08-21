@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { db, products } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
 import { generateProductId, getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
-import { eq } from 'drizzle-orm';
+import { createWebhookEvent } from '@/lib/webhooks/sender';
+import { eq, and } from 'drizzle-orm';
 
 const createProductSchema = z.object({
   name: z.string().min(1).max(255),
@@ -65,6 +66,28 @@ export async function POST(request: NextRequest) {
       .values(newProduct)
       .returning();
 
+    // Send webhook event for product creation
+    try {
+      const productData = {
+        id: createdProduct.id,
+        name: createdProduct.name,
+        description: createdProduct.description,
+        type: createdProduct.type,
+        price: createdProduct.price,
+        price_usd: createdProduct.priceUsd ? parseFloat(createdProduct.priceUsd) : undefined,
+        currency: createdProduct.currency,
+        images: createdProduct.images,
+        metadata: createdProduct.metadata,
+        active: createdProduct.active,
+        created: Math.floor(createdProduct.createdAt.getTime() / 1000),
+        updated: Math.floor(createdProduct.updatedAt.getTime() / 1000)
+      };
+      
+      await createWebhookEvent(auth.merchantId, 'product.created', productData);
+    } catch (webhookError) {
+      console.error('Failed to send product.created webhook:', webhookError);
+    }
+
     return NextResponse.json({
       id: createdProduct.id,
       name: createdProduct.name,
@@ -110,17 +133,18 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const active = url.searchParams.get('active');
 
-    let query = db
-      .select()
-      .from(products)
-      .where(eq(products.merchantId, auth.merchantId));
-
+    // Build where conditions
+    const conditions = [eq(products.merchantId, auth.merchantId)];
+    
     // Filter by active status if specified
     if (active !== null) {
-      query = query.where(eq(products.active, active === 'true'));
+      conditions.push(eq(products.active, active === 'true'));
     }
 
-    const merchantProducts = await query
+    const merchantProducts = await db
+      .select()
+      .from(products)
+      .where(and(...conditions))
       .limit(limit)
       .offset(offset)
       .orderBy(products.createdAt);

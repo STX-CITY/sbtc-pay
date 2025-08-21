@@ -75,14 +75,31 @@ export const paymentMethods = pgTable('payment_methods', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const webhookEndpoints = pgTable('webhook_endpoints', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  merchantId: uuid('merchant_id').references(() => merchants.id).notNull(),
+  url: varchar('url', { length: 500 }).notNull(),
+  description: text('description'),
+  events: varchar('events', { length: 1000 }).notNull(), // JSON array stored as string
+  active: boolean('active').default(true).notNull(),
+  secret: varchar('secret', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const webhookEvents = pgTable('webhook_events', {
   id: uuid('id').primaryKey().defaultRandom(),
   merchantId: uuid('merchant_id').references(() => merchants.id).notNull(),
+  webhookEndpointId: uuid('webhook_endpoint_id').references(() => webhookEndpoints.id),
   eventType: varchar('event_type', { length: 100 }).notNull(),
   paymentIntentId: varchar('payment_intent_id', { length: 255 }),
   data: jsonb('data').notNull(),
   delivered: boolean('delivered').default(false).notNull(),
   attempts: integer('attempts').default(0).notNull(),
+  lastAttemptedAt: timestamp('last_attempted_at'),
+  nextRetryAt: timestamp('next_retry_at'),
+  responseStatus: integer('response_status'),
+  responseBody: text('response_body'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -115,6 +132,8 @@ export type PaymentIntent = typeof paymentIntents.$inferSelect;
 export type NewPaymentIntent = typeof paymentIntents.$inferInsert;
 export type PaymentMethod = typeof paymentMethods.$inferSelect;
 export type NewPaymentMethod = typeof paymentMethods.$inferInsert;
+export type WebhookEndpoint = typeof webhookEndpoints.$inferSelect;
+export type NewWebhookEndpoint = typeof webhookEndpoints.$inferInsert;
 export type WebhookEvent = typeof webhookEvents.$inferSelect;
 export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
 export type Subscription = typeof subscriptions.$inferSelect;

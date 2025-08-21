@@ -1,84 +1,142 @@
 import crypto from 'crypto';
-import { db, webhookEvents, merchants } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { db, webhookEvents, webhookEndpoints, merchants } from '@/lib/db';
+import { eq, and } from 'drizzle-orm';
+
+export type WebhookEventType = 
+  | 'payment_intent.created' 
+  | 'payment_intent.succeeded' 
+  | 'payment_intent.failed' 
+  | 'payment_intent.canceled'
+  | 'product.created'
+  | 'product.updated'
+  | 'product.deleted'
+  | 'merchant.updated';
 
 export interface WebhookPayload {
   id: string;
-  type: 'payment_intent.created' | 'payment_intent.succeeded' | 'payment_intent.failed' | 'payment_intent.canceled';
+  type: WebhookEventType;
   data: {
-    object: any; // PaymentIntent object
+    object: any;
   };
   created: number;
 }
 
 export async function createWebhookEvent(
   merchantId: string,
-  eventType: WebhookPayload['type'],
-  paymentIntentData: any
-): Promise<string> {
-  const webhookPayload: WebhookPayload = {
-    id: `evt_${crypto.randomBytes(12).toString('base64url')}`,
-    type: eventType,
-    data: {
-      object: paymentIntentData
-    },
-    created: Math.floor(Date.now() / 1000)
-  };
+  eventType: WebhookEventType,
+  eventData: any,
+  specificEndpointId?: string
+): Promise<string[]> {
+  // Get webhook endpoints that are subscribed to this event
+  let targetEndpoints;
+  
+  if (specificEndpointId) {
+    // Send to specific endpoint (for testing)
+    targetEndpoints = await db
+      .select()
+      .from(webhookEndpoints)
+      .where(and(
+        eq(webhookEndpoints.id, specificEndpointId),
+        eq(webhookEndpoints.merchantId, merchantId),
+        eq(webhookEndpoints.active, true)
+      ));
+  } else {
+    // Send to all active endpoints subscribed to this event
+    targetEndpoints = await db
+      .select()
+      .from(webhookEndpoints)
+      .where(and(
+        eq(webhookEndpoints.merchantId, merchantId),
+        eq(webhookEndpoints.active, true)
+      ));
+  }
 
-  const [event] = await db.insert(webhookEvents).values({
-    merchantId,
-    eventType,
-    paymentIntentId: paymentIntentData.id,
-    data: webhookPayload,
-    delivered: false,
-    attempts: 0
-  }).returning();
+  if (targetEndpoints.length === 0) {
+    console.log(`No active webhook endpoints found for merchant ${merchantId} and event ${eventType}`);
+    return [];
+  }
 
-  // Trigger async webhook delivery
-  deliverWebhook(event.id).catch(console.error);
+  const eventIds: string[] = [];
 
-  return event.id;
+  // Create webhook events for each subscribed endpoint
+  for (const endpoint of targetEndpoints) {
+    const subscribedEvents = JSON.parse(endpoint.events);
+    
+    // Skip if this endpoint is not subscribed to this event type
+    if (!subscribedEvents.includes(eventType)) {
+      continue;
+    }
+
+    const webhookPayload: WebhookPayload = {
+      id: `evt_${crypto.randomBytes(12).toString('base64url')}`,
+      type: eventType,
+      data: {
+        object: eventData
+      },
+      created: Math.floor(Date.now() / 1000)
+    };
+
+    const [event] = await db.insert(webhookEvents).values({
+      merchantId,
+      webhookEndpointId: endpoint.id,
+      eventType,
+      paymentIntentId: eventData.id || null,
+      data: webhookPayload,
+      delivered: false,
+      attempts: 0
+    }).returning();
+
+    eventIds.push(event.id);
+
+    // Trigger async webhook delivery
+    deliverWebhook(event.id).catch(console.error);
+  }
+
+  return eventIds;
 }
 
 export async function deliverWebhook(eventId: string): Promise<boolean> {
   try {
-    const eventQuery = await db
-      .select()
-      .from(webhookEvents)
-      .where(eq(webhookEvents.id, eventId))
-      .limit(1);
+    // Get the webhook event with its endpoint
+    const event = await db.query.webhookEvents.findFirst({
+      where: eq(webhookEvents.id, eventId),
+      with: {
+        webhookEndpoint: true
+      }
+    });
 
-    if (eventQuery.length === 0) {
+    if (!event) {
       console.log('Webhook event not found:', eventId);
       return false;
     }
 
-    const event = eventQuery[0];
-    
-    const merchantQuery = await db
-      .select()
-      .from(merchants)
-      .where(eq(merchants.id, event.merchantId))
-      .limit(1);
+    if (!event.webhookEndpointId) {
+      // Fallback to legacy single webhook URL for backward compatibility
+      return deliverLegacyWebhook(eventId);
+    }
 
-    if (merchantQuery.length === 0) {
-      console.log('Merchant not found for event:', eventId);
+    const endpoint = await db.query.webhookEndpoints.findFirst({
+      where: eq(webhookEndpoints.id, event.webhookEndpointId)
+    });
+
+    if (!endpoint) {
+      console.log('Webhook endpoint not found for event:', eventId);
       return false;
     }
 
-    const merchant = merchantQuery[0];
-
-    if (!merchant.webhookUrl) {
-      console.log('No webhook URL configured for event:', eventId);
+    if (!endpoint.active) {
+      console.log('Webhook endpoint is disabled for event:', eventId);
       return false;
     }
 
     const signature = generateWebhookSignature(
       JSON.stringify(event.data),
-      merchant.webhookSecret || ''
+      endpoint.secret
     );
 
-    const response = await fetch(merchant.webhookUrl, {
+    const now = new Date();
+    
+    const response = await fetch(endpoint.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -92,12 +150,20 @@ export async function deliverWebhook(eventId: string): Promise<boolean> {
     });
 
     const success = response.ok;
+    const responseBody = await response.text().catch(() => '');
+
+    // Calculate next retry time
+    const nextRetryAt = success ? null : new Date(now.getTime() + Math.pow(2, event.attempts) * 1000);
 
     // Update delivery status
     await db.update(webhookEvents)
       .set({
         delivered: success,
-        attempts: event.attempts + 1
+        attempts: event.attempts + 1,
+        lastAttemptedAt: now,
+        nextRetryAt,
+        responseStatus: response.status,
+        responseBody: responseBody.substring(0, 1000) // Limit response body size
       })
       .where(eq(webhookEvents.id, eventId));
 
@@ -123,9 +189,15 @@ export async function deliverWebhook(eventId: string): Promise<boolean> {
         .limit(1);
       
       if (currentEvent.length > 0) {
+        const now = new Date();
+        const nextRetryAt = new Date(now.getTime() + Math.pow(2, currentEvent[0].attempts) * 1000);
+        
         await db.update(webhookEvents)
           .set({
-            attempts: currentEvent[0].attempts + 1
+            attempts: currentEvent[0].attempts + 1,
+            lastAttemptedAt: now,
+            nextRetryAt,
+            responseBody: error instanceof Error ? error.message : 'Unknown error'
           })
           .where(eq(webhookEvents.id, eventId));
       }
@@ -133,6 +205,62 @@ export async function deliverWebhook(eventId: string): Promise<boolean> {
       console.error('Error updating webhook attempts:', updateError);
     }
 
+    return false;
+  }
+}
+
+// Legacy function for backward compatibility with old webhook events
+async function deliverLegacyWebhook(eventId: string): Promise<boolean> {
+  try {
+    const eventQuery = await db
+      .select()
+      .from(webhookEvents)
+      .where(eq(webhookEvents.id, eventId))
+      .limit(1);
+
+    const event = eventQuery[0];
+    
+    const merchant = await db.query.merchants.findFirst({
+      where: eq(merchants.id, event.merchantId)
+    });
+
+    if (!merchant?.webhookUrl) {
+      console.log('No legacy webhook URL configured for event:', eventId);
+      return false;
+    }
+
+    const signature = generateWebhookSignature(
+      JSON.stringify(event.data),
+      merchant.webhookSecret || ''
+    );
+
+    const response = await fetch(merchant.webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-SBTC-Signature': signature,
+        'X-SBTC-Event-Id': event.id,
+        'X-SBTC-Event-Type': event.eventType,
+        'User-Agent': 'SBTC-Webhooks/1.0'
+      },
+      body: JSON.stringify(event.data),
+      signal: AbortSignal.timeout(30000)
+    });
+
+    const success = response.ok;
+
+    await db.update(webhookEvents)
+      .set({
+        delivered: success,
+        attempts: event.attempts + 1,
+        lastAttemptedAt: new Date(),
+        responseStatus: response.status
+      })
+      .where(eq(webhookEvents.id, eventId));
+
+    return success;
+  } catch (error) {
+    console.error('Error delivering legacy webhook:', error);
     return false;
   }
 }
