@@ -352,6 +352,27 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
               </div>
             </div>
 
+            {/* Memo Field */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Memo (Required)
+              </label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 px-3 py-2 bg-white border rounded text-sm font-mono">
+                  {paymentIntent.id}
+                </code>
+                <button
+                  onClick={() => copyToClipboard(paymentIntent.id)}
+                  className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm whitespace-nowrap"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Include this memo in your transaction for automatic verification
+              </p>
+            </div>
+
             {/* Instructions */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-start">
@@ -359,7 +380,12 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
                 <div className="text-sm text-yellow-800">
-                  <strong>Important:</strong> Please send exactly the amount shown above to the recipient address. After sending, click the "I Already Sent" button below to proceed to payment verification.
+                  <strong>Important:</strong> 
+                  <ol className="list-decimal list-inside mt-1 space-y-1">
+                    <li>Send exactly the amount shown above to the recipient address</li>
+                    <li>Include the memo/reference ID in your transaction</li>
+                    <li>Click "I Already Sent the Payment" to proceed to verification</li>
+                  </ol>
                 </div>
               </div>
             </div>

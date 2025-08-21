@@ -13,6 +13,7 @@ interface PaymentIntent {
   id: string;
   status: 'created' | 'pending' | 'succeeded' | 'failed' | 'canceled';
   tx_id?: string;
+  amount: number;
 }
 
 export default function CheckoutPage({ params, searchParams }: CheckoutPageProps) {
@@ -25,6 +26,37 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
   const [error, setError] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to check manual payment (no txId)
+  const checkManualPayment = async () => {
+    try {
+      const response = await fetch('/api/v1/public/check-transaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ paymentIntentId })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to check manual payment');
+        return null;
+      }
+
+      const data = await response.json();
+      
+      if (data.status === 'succeeded') {
+        // Payment verified - redirect to success
+        window.location.href = `/checkout/${paymentIntentId}?status=succeeded&tx=${data.txId}`;
+        return 'succeeded';
+      }
+      
+      return data.status || 'pending';
+    } catch (error) {
+      console.error('Error checking manual payment:', error);
+      return null;
+    }
+  };
 
   // Function to check transaction status from Hiro API
   const checkTransactionStatus = async (txId: string) => {
@@ -135,15 +167,20 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
   const startPolling = () => {
     setIsPolling(true);
     
-    // Poll every 3 seconds
+    // Poll every 3 seconds for wallet payments, 10 seconds for manual
+    const pollInterval = txId ? 3000 : 10000;
+    
     pollingIntervalRef.current = setInterval(async () => {
       const latestPaymentIntent = await fetchPaymentIntent();
       
-      // If we have a tx_id, also check Hiro API for faster updates
+      // If we have a tx_id, check Hiro API for faster updates
       if (latestPaymentIntent?.tx_id) {
         await checkTransactionStatus(latestPaymentIntent.tx_id);
+      } else if (!txId) {
+        // No tx_id means this might be a manual payment, check for it
+        await checkManualPayment();
       }
-    }, 3000);
+    }, pollInterval);
   };
   
   const stopPolling = () => {
@@ -190,7 +227,7 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
   // Show loading state for tx_broadcast status
   if (effectiveStatus === 'tx_broadcast') {
     // If no tx_id in database yet, show waiting for transaction state
-    if (!paymentIntent.tx_id) {
+    if (!paymentIntent.tx_id && !txId) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="max-w-md mx-auto">
@@ -204,17 +241,28 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
                   </div>
                 </div>
                 <h1 className="text-2xl font-bold mb-3 text-gray-900">
-                  Waiting for Transaction
+                  Checking for Payment
                 </h1>
                 <p className="text-gray-600 mb-6">
-                  Waiting for transaction to be registered...
+                  Looking for your transaction on the blockchain...
                   <br />
-                  <span className="text-sm">Please do not close this window.</span>
+                  <span className="text-sm">Please ensure you included the memo: <code className="bg-gray-100 px-2 py-1 rounded">{paymentIntentId}</code></span>
                 </p>
                 
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Manual Payment Requirements:</strong>
+                  </p>
+                  <ul className="text-xs text-blue-700 mt-2 text-left list-disc list-inside">
+                    <li>Exact amount: {(paymentIntent.amount / 100_000_000).toFixed(8)} sBTC</li>
+                    <li>Memo: {paymentIntentId}</li>
+                    <li>Network confirmation required</li>
+                  </ul>
+                </div>
+                
                 <div className="text-sm text-gray-500">
-                  <p>⏱️ Checking for transaction ID...</p>
-                  <p className="mt-2">Polling every 3 seconds</p>
+                  <p>⏱️ Checking blockchain every 10 seconds...</p>
+                  <p className="mt-2">This may take 1-2 minutes after sending</p>
                 </div>
               </div>
             </div>
