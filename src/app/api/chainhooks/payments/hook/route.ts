@@ -216,7 +216,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                           status: 'failed',
                           updatedAt: new Date(),
                           metadata: {
-                              ...paymentIntent.metadata,
+                              ...(paymentIntent.metadata || {}),
                               failure_reason: txData.tx_result?.repr || 'Transaction failed',
                               processed_at: new Date().toISOString()
                           }
