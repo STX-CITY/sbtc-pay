@@ -1,33 +1,42 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '@/lib/auth/client';
 
 interface ChartData {
   date: string;
-  payments: number;
-  volume: number;
+  day: string;
+  amount: number;
+  count: number;
 }
 
 export function PaymentChart() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Mock data for now - would fetch from API
-    setTimeout(() => {
-      const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        return {
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          payments: Math.floor(Math.random() * 20) + 5,
-          volume: parseFloat((Math.random() * 2 + 0.5).toFixed(4))
-        };
-      });
-      setChartData(last7Days);
-      setLoading(false);
-    }, 800);
+    fetchChartData();
   }, []);
+
+  const fetchChartData = async () => {
+    try {
+      const response = await fetch('/api/v1/dashboard/stats', {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch chart data');
+      }
+
+      const data = await response.json();
+      setChartData(data.chartData.daily || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load chart data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -40,7 +49,27 @@ export function PaymentChart() {
     );
   }
 
-  const maxPayments = Math.max(...chartData.map(d => d.payments));
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Volume (7 days)</h3>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-600">Failed to load chart data: {error}</p>
+            <button 
+              onClick={fetchChartData}
+              className="mt-2 text-sm text-red-700 hover:text-red-900"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const maxPayments = Math.max(...chartData.map(d => d.count), 1);
+  const formatAmount = (amount: number) => (amount / 100_000_000).toFixed(6);
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -49,22 +78,22 @@ export function PaymentChart() {
         <div className="space-y-4">
           {chartData.map((day, index) => (
             <div key={index} className="flex items-center gap-4">
-              <div className="w-12 text-xs text-gray-500">{day.date}</div>
+              <div className="w-12 text-xs text-gray-500">{day.day}</div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-blue-500 h-2 rounded-full transition-all"
-                      style={{ width: `${(day.payments / maxPayments) * 100}%` }}
+                      style={{ width: `${(day.count / maxPayments) * 100}%` }}
                     ></div>
                   </div>
                   <div className="text-xs text-gray-600 w-16">
-                    {day.payments} payments
+                    {day.count} payments
                   </div>
                 </div>
               </div>
               <div className="text-xs text-gray-500 w-20 text-right">
-                {day.volume} sBTC
+                {formatAmount(day.amount)} sBTC
               </div>
             </div>
           ))}

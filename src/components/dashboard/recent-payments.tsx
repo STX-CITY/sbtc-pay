@@ -1,55 +1,47 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { getAuthHeaders } from '@/lib/auth/client';
 
 interface Payment {
   id: string;
   amount: number;
-  status: 'succeeded' | 'pending' | 'failed';
-  customer: string;
-  createdAt: string;
+  formatted: string;
+  status: 'succeeded' | 'pending' | 'failed' | 'created';
+  description?: string;
+  customerEmail?: string;
+  created: number;
+  txId?: string;
 }
 
 export function RecentPayments() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Mock data for now - would fetch from API
-    setTimeout(() => {
-      setPayments([
-        {
-          id: 'pi_1abc123',
-          amount: 0.001,
-          status: 'succeeded',
-          customer: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-          createdAt: '2024-01-15T10:30:00Z'
-        },
-        {
-          id: 'pi_2def456',
-          amount: 0.0025,
-          status: 'pending',
-          customer: 'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG',
-          createdAt: '2024-01-15T09:15:00Z'
-        },
-        {
-          id: 'pi_3ghi789',
-          amount: 0.005,
-          status: 'succeeded',
-          customer: 'ST3NBRSFKX28FQ2ZJ1MAKX58HKHSDGNV5N7R21XCP',
-          createdAt: '2024-01-15T08:45:00Z'
-        },
-        {
-          id: 'pi_4jkl012',
-          amount: 0.0015,
-          status: 'failed',
-          customer: 'ST1HTBVD3JG9C05J7HBJTHGR0GGW7KXW28M5JS8QE',
-          createdAt: '2024-01-15T08:00:00Z'
-        }
-      ]);
-      setLoading(false);
-    }, 1200);
+    fetchRecentPayments();
   }, []);
+
+  const fetchRecentPayments = async () => {
+    try {
+      const response = await fetch('/api/v1/dashboard/stats', {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent payments');
+      }
+
+      const data = await response.json();
+      setPayments(data.recentPayments || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load payments');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: Payment['status']) => {
     const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full';
@@ -60,9 +52,20 @@ export function RecentPayments() {
         return `${baseClasses} bg-yellow-100 text-yellow-800`;
       case 'failed':
         return `${baseClasses} bg-red-100 text-red-800`;
+      case 'created':
+        return `${baseClasses} bg-blue-100 text-blue-800`;
       default:
         return `${baseClasses} bg-gray-100 text-gray-800`;
     }
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
@@ -101,15 +104,15 @@ export function RecentPayments() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500">
-                  {payment.customer.slice(0, 8)}...{payment.customer.slice(-8)}
+                  {payment.customerEmail || payment.description || 'No customer info'}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">
-                  {payment.amount.toFixed(6)} sBTC
+                  {payment.formatted} sBTC
                 </p>
                 <p className="text-xs text-gray-500">
-                  {new Date(payment.createdAt).toLocaleDateString()}
+                  {formatDate(payment.created)}
                 </p>
               </div>
             </div>
