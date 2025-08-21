@@ -69,7 +69,7 @@ export const transferSBTC = async ({
       contract: `${contractConfig.address}.${contractConfig.name}`,
       functionName: 'transfer',
       functionArgs: [
-        Cl.uint(Number(amount)),                    // amount in microsBTC
+        Cl.uint(amount),                    // amount in microsBTC
         Cl.principal(sender),       // sender address
         Cl.principal(recipient),    // recipient address
         Cl.none()
