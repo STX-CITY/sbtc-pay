@@ -54,13 +54,7 @@ function DashboardNavigation({ children }: { children: ReactNode }) {
                 className="text-gray-600 hover:text-gray-900"
               >
                 Developers
-              </Link>
-              <Link 
-                href="/dashboard/analytics" 
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Analytics
-              </Link>
+              </Link>              
               <Link 
                 href="/dashboard/settings" 
                 className="text-gray-600 hover:text-gray-900"
