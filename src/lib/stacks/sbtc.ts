@@ -10,7 +10,7 @@ import {
   Cl  
 } from '@stacks/transactions';
 import { SBTC_CONTRACT, getNetwork, getCurrentNetwork, type NetworkType, MICROUNITS_PER_SBTC } from './config';
-import useWalletStore from '@/stores/WalletStore';
+import { fetchBlockHeight } from './blockheight';
 
 export interface SBTCTransferParams {
   paymentIntentId: string;
@@ -113,15 +113,8 @@ export const transferSBTC = async ({
       }
     }
 
-    // Get current block height from wallet store
-    const { blockHeight, fetchBlockHeight } = useWalletStore.getState();
-    
-    // If block height is not available, fetch it
-    let currentBlockHeight = blockHeight;
-    if (!currentBlockHeight || currentBlockHeight === 0) {
-      await fetchBlockHeight();
-      currentBlockHeight = useWalletStore.getState().blockHeight;
-    }
+    // Get current block height
+    const currentBlockHeight = await fetchBlockHeight(network);
 
     // Use chainhooks to listen for the tx to be confirmed and update the database
     

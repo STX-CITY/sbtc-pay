@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db, merchants } from '@/lib/db';
 import { eq } from 'drizzle-orm';
-import { validateStacksAddress } from '@/lib/stacks/sbtc';
+import { validateStacksAddress } from '@/lib/stacks/validation';
 import { getCurrentNetwork } from '@/lib/stacks/config';
 
 const checkAddressSchema = z.object({

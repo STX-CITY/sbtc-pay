@@ -4,7 +4,7 @@ import { db, merchants } from '@/lib/db';
 import { generateWebhookSecret } from '@/lib/payments/utils';
 import { generateApiKey } from '@/lib/auth/api-keys';
 import { eq } from 'drizzle-orm';
-import { validateStacksAddress } from '@/lib/stacks/sbtc';
+import { validateStacksAddress } from '@/lib/stacks/validation';
 import { getCurrentNetwork } from '@/lib/stacks/config';
 
 const registerMerchantSchema = z.object({
