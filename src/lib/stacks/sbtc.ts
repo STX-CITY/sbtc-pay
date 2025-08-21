@@ -69,6 +69,7 @@ export const transferSBTC = async ({
       network
     });
 
+    alert(`amount ${amount} amount type ${typeof amount}`)
     
     // Use request API for contract call
     const response = await request('stx_callContract', {
