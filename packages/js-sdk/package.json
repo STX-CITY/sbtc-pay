@@ -1,6 +1,6 @@
 {
   "name": "@sbtc-gateway/js",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "JavaScript SDK for sBTC Payment Gateway",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,5 +18,17 @@
   },
   "files": [
     "dist/**/*"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/sbtc-pay.git",
+    "directory": "packages/js-sdk"
+  },
+  "homepage": "https://github.com/your-org/sbtc-pay#readme",
+  "bugs": {
+    "url": "https://github.com/your-org/sbtc-pay/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
