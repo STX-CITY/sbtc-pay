@@ -97,32 +97,38 @@ export async function createWebhookEvent(
 
 export async function deliverWebhook(eventId: string): Promise<boolean> {
   try {
-    // Get the webhook event with its endpoint
-    const event = await db.query.webhookEvents.findFirst({
-      where: eq(webhookEvents.id, eventId),
-      with: {
-        webhookEndpoint: true
-      }
-    });
+    // Get the webhook event using explicit select
+    const eventQuery = await db
+      .select()
+      .from(webhookEvents)
+      .where(eq(webhookEvents.id, eventId))
+      .limit(1);
 
-    if (!event) {
+    if (eventQuery.length === 0) {
       console.log('Webhook event not found:', eventId);
       return false;
     }
+
+    const event = eventQuery[0];
 
     if (!event.webhookEndpointId) {
       // Fallback to legacy single webhook URL for backward compatibility
       return deliverLegacyWebhook(eventId);
     }
 
-    const endpoint = await db.query.webhookEndpoints.findFirst({
-      where: eq(webhookEndpoints.id, event.webhookEndpointId)
-    });
+    // Get the webhook endpoint using explicit select
+    const endpointQuery = await db
+      .select()
+      .from(webhookEndpoints)
+      .where(eq(webhookEndpoints.id, event.webhookEndpointId))
+      .limit(1);
 
-    if (!endpoint) {
+    if (endpointQuery.length === 0) {
       console.log('Webhook endpoint not found for event:', eventId);
       return false;
     }
+
+    const endpoint = endpointQuery[0];
 
     if (!endpoint.active) {
       console.log('Webhook endpoint is disabled for event:', eventId);
@@ -220,9 +226,18 @@ async function deliverLegacyWebhook(eventId: string): Promise<boolean> {
 
     const event = eventQuery[0];
     
-    const merchant = await db.query.merchants.findFirst({
-      where: eq(merchants.id, event.merchantId)
-    });
+    const merchantQuery = await db
+      .select()
+      .from(merchants)
+      .where(eq(merchants.id, event.merchantId))
+      .limit(1);
+
+    if (merchantQuery.length === 0) {
+      console.log('Merchant not found for event:', eventId);
+      return false;
+    }
+
+    const merchant = merchantQuery[0];
 
     if (!merchant?.webhookUrl) {
       console.log('No legacy webhook URL configured for event:', eventId);

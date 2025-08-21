@@ -85,15 +85,26 @@ export async function POST(request: NextRequest) {
 // Handle GET requests to show webhook endpoint info
 export async function GET() {
   return NextResponse.json({
-    message: 'Test Webhook Endpoint',
-    description: 'This endpoint receives and logs webhook payloads for testing',
+    message: 'sBTC Pay Test Webhook Endpoint',
+    description: 'This endpoint receives and logs webhook payloads for testing webhook integrations',
+    url: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/test_webhook`,
     methods: ['POST'],
-    expected_headers: [
-      'x-sbtc-signature',
-      'x-sbtc-event-id', 
-      'x-sbtc-event-type',
-      'content-type'
-    ],
-    usage: 'Configure this URL as a webhook endpoint in your merchant dashboard'
+    expected_headers: {
+      'x-sbtc-signature': 'HMAC-SHA256 signature for payload verification',
+      'x-sbtc-event-id': 'Unique identifier for this webhook event',
+      'x-sbtc-event-type': 'Type of event (e.g., payment_intent.succeeded)',
+      'content-type': 'application/json'
+    },
+    signature_format: 't=1640995200,v1=a2114d57b48eac...',
+    verification_example: {
+      javascript: 'const isValid = verifyWebhookSignature(payload, signature, secret);',
+      curl: 'curl -X POST https://your-app.com/webhooks -H "x-sbtc-signature: t=..." -d "..."'
+    },
+    documentation: '/webhook-guide',
+    utilities: '/webhook-utils.js',
+    testing: {
+      dashboard: '/dashboard/developers',
+      standalone: '/test_webhook'
+    }
   });
 }
