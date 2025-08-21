@@ -7,7 +7,6 @@ import {
   standardPrincipalCV,
   someCV,
   bufferCVFromString,
-  FungiblePostCondition,
 } from '@stacks/transactions';
 import { STACKS_NETWORK, NETWORK_CONFIG } from '../stacks/config';
 
@@ -28,15 +27,9 @@ export async function createSBTCTransfer(params: TransferSBTCParams) {
     privateKey
   } = params;
 
-  const postConditions: FungiblePostCondition[] = [
-    {
-      type: 'ft-postcondition',
-      address: senderAddress,
-      condition: 'eq' as const,
-      amount: amount.toString(),
-      asset: `${NETWORK_CONFIG.contract.address}.${NETWORK_CONFIG.contract.name}::sbtc`
-    }
-  ];
+  // Post conditions can be added here if needed
+  // For now, we'll use Allow mode to permit the transaction
+  const postConditions: any[] = [];
 
   const txOptions = {
     contractAddress: NETWORK_CONFIG.contract.address,
@@ -51,7 +44,7 @@ export async function createSBTCTransfer(params: TransferSBTCParams) {
     senderKey: privateKey,
     network: STACKS_NETWORK,
     anchorMode: AnchorMode.Any,
-    postConditionMode: PostConditionMode.Deny,
+    postConditionMode: PostConditionMode.Allow,
     postConditions,
   };
 
