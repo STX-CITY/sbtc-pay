@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import useWalletStore from '@/stores/WalletStore';
+import { clearAuth } from '@/lib/auth/client';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -15,10 +16,8 @@ function DashboardNavigation({ children }: { children: ReactNode }) {
   const { disconnectWallet } = useWalletStore();
   
   const handleLogout = () => {
-    // Clear localStorage
-    localStorage.removeItem('api_key');
-    localStorage.removeItem('merchant_id');
-    localStorage.removeItem('merchant_address');
+    // Clear authentication data
+    clearAuth();
     
     // Disconnect wallet
     disconnectWallet();

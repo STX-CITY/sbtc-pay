@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useWalletStore from '@/stores/WalletStore';
+import { getStoredApiKey, getStoredMerchantId } from '@/lib/auth/client';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -21,7 +22,18 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
 
   const checkAuthentication = async () => {
     try {
-      // First check if wallet is connected
+      // First check if we have stored auth data
+      const apiKey = getStoredApiKey();
+      const merchantId = getStoredMerchantId();
+      
+      if (apiKey && merchantId) {
+        // We have stored auth, verify it's still valid
+        setIsAuthenticated(true);
+        setLoading(false);
+        return;
+      }
+
+      // No stored auth, check if wallet is connected for new login
       if (!isConnected || !currentAddress) {
         setIsAuthenticated(false);
         setLoading(false);

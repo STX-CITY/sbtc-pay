@@ -72,6 +72,7 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
     if (!email || !paymentIntent) return;
 
     try {
+      // For checkout pages, we use the test API key since customers don't have accounts
       const apiKey = process.env.NEXT_PUBLIC_TEST_API_KEY || 'test_key';
       const response = await fetch(`/api/v1/payment_intents/${paymentIntent.id}`, {
         method: 'POST',

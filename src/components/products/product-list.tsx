@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatSBTCAmount } from '@/lib/stacks/sbtc';
+import { getAuthHeaders } from '@/lib/auth/client';
 
 interface Product {
   id: string;
@@ -29,12 +30,8 @@ export function ProductList() {
 
   const fetchProducts = async () => {
     try {
-      const apiKey = localStorage.getItem('api_key') || process.env.NEXT_PUBLIC_TEST_API_KEY;
-      
       const response = await fetch('/api/v1/products?limit=20', {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        }
+        headers: getAuthHeaders()
       });
 
       if (!response.ok) {

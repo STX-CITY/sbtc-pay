@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAuthHeaders } from '@/lib/auth/client';
 
 interface ProductFormData {
   name: string;
@@ -28,15 +29,9 @@ export function ProductForm() {
     setError(null);
 
     try {
-      // Get API key from localStorage (in production, this would be handled differently)
-      const apiKey = localStorage.getItem('api_key') || process.env.NEXT_PUBLIC_TEST_API_KEY;
-      
       const response = await fetch('/api/v1/products', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           name: formData.name,
           description: formData.description,

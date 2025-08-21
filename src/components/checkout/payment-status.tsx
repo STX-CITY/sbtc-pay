@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 interface PaymentStatusProps {
   status: 'success' | 'failed' | 'pending';
   paymentIntentId: string;
@@ -7,181 +9,297 @@ interface PaymentStatusProps {
 }
 
 export function PaymentStatus({ status, paymentIntentId, txId }: PaymentStatusProps) {
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   const getStatusConfig = () => {
     switch (status) {
       case 'success':
         return {
           icon: (
-            <div className="w-20 h-20 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
-              <svg className="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
+            <div className="relative">
+              <div className="w-20 h-20 mx-auto bg-green-50 rounded-full flex items-center justify-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
             </div>
           ),
-          title: 'Payment Successful',
-          message: 'Your sBTC payment has been processed successfully.',
-          color: 'text-green-600',
+          title: 'Payment successful',
+          subtitle: 'Transaction confirmed',
+          message: 'Your sBTC payment has been confirmed on the blockchain.',
+          color: 'text-gray-900',
+          accentColor: 'text-green-600',
           bgColor: 'bg-green-50',
-          borderColor: 'border-green-200'
+          borderColor: 'border-green-100'
         };
       case 'failed':
         return {
           icon: (
-            <div className="w-20 h-20 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
-              <svg className="w-10 h-10 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
+            <div className="relative">
+              <div className="w-20 h-20 mx-auto bg-red-50 rounded-full flex items-center justify-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              </div>
             </div>
           ),
-          title: 'Payment Failed',
-          message: 'Your payment could not be processed. Please try again.',
-          color: 'text-red-600',
+          title: 'Payment failed',
+          subtitle: 'Transaction unsuccessful',
+          message: 'The transaction could not be completed. Please try again.',
+          color: 'text-gray-900',
+          accentColor: 'text-red-600',
           bgColor: 'bg-red-50',
-          borderColor: 'border-red-200'
+          borderColor: 'border-red-100'
         };
       case 'pending':
         return {
           icon: (
-            <div className="w-20 h-20 mx-auto mb-6 bg-yellow-100 rounded-full flex items-center justify-center">
-              <svg className="w-10 h-10 text-yellow-600 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+            <div className="relative">
+              <div className="w-20 h-20 mx-auto bg-amber-50 rounded-full flex items-center justify-center">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-amber-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              </div>
             </div>
           ),
-          title: 'Payment Pending',
-          message: 'Your payment is being processed. This may take a few minutes.',
-          color: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-200'
+          title: 'Processing payment',
+          subtitle: 'Transaction pending',
+          message: 'Your transaction is being confirmed on the blockchain.',
+          color: 'text-gray-900',
+          accentColor: 'text-amber-600',
+          bgColor: 'bg-amber-50',
+          borderColor: 'border-amber-100'
         };
       default:
         return {
-          icon: (
-            <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-              <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-              </svg>
-            </div>
-          ),
+          icon: null,
           title: 'Unknown Status',
+          subtitle: '',
           message: 'Payment status unknown.',
-          color: 'text-gray-600',
+          color: 'text-gray-900',
+          accentColor: 'text-gray-600',
           bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-200'
+          borderColor: 'border-gray-100'
         };
     }
   };
 
   const config = getStatusConfig();
   
-  const truncateId = (id: string, length: number = 12) => {
-    if (id.length <= length) return id;
-    return `${id.slice(0, length)}...${id.slice(-4)}`;
+  const truncateId = (id: string, isMobile: boolean = false) => {
+    if (!id) return '';
+    if (isMobile) {
+      return id.length > 20 ? `${id.slice(0, 8)}...${id.slice(-8)}` : id;
+    }
+    return id;
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-        <div className="p-6 sm:p-8 lg:p-10">
-          <div className="text-center">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-3xl">
+        {/* Main Card */}
+        <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+          {/* Status Header */}
+          <div className="px-8 pt-10 pb-8 sm:px-12 sm:pt-12 text-center bg-gradient-to-b from-white to-gray-50/50">
             {config.icon}
             
-            <h1 className={`text-2xl sm:text-3xl font-bold mb-4 ${config.color}`}>
+            <h1 className={`mt-6 text-2xl sm:text-3xl font-bold ${config.color}`}>
               {config.title}
             </h1>
             
-            <p className="text-gray-600 text-base sm:text-lg leading-relaxed mb-8">
+            {config.subtitle && (
+              <p className={`mt-1 text-sm font-medium ${config.accentColor}`}>
+                {config.subtitle}
+              </p>
+            )}
+            
+            <p className="mt-3 text-base text-gray-600 max-w-md mx-auto">
               {config.message}
             </p>
+          </div>
 
-            <div className={`rounded-xl p-4 sm:p-6 mb-8 ${config.bgColor} border ${config.borderColor}`}>
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                  <span className="text-gray-700 font-medium text-sm sm:text-base">Payment ID:</span>
-                  <span className="font-mono text-xs sm:text-sm text-gray-800 break-all sm:break-normal">
-                    <span className="sm:hidden">{truncateId(paymentIntentId)}</span>
+          {/* Details Section */}
+          <div className="px-8 py-6 sm:px-12 space-y-4 bg-gray-50/30">
+            {/* Payment ID */}
+            <div className="group bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 hover:border-gray-200 transition-all duration-200">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                    Payment ID
+                  </label>
+                  <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                    <span className="sm:hidden">{truncateId(paymentIntentId, true)}</span>
                     <span className="hidden sm:inline">{paymentIntentId}</span>
-                  </span>
-                </div>
-                
-                {txId && (
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                    <span className="text-gray-700 font-medium text-sm sm:text-base">Transaction ID:</span>
-                    <span className="font-mono text-xs sm:text-sm text-gray-800 break-all sm:break-normal">
-                      <span className="sm:hidden">{truncateId(txId, 16)}</span>
-                      <span className="hidden sm:inline">{txId}</span>
-                    </span>
                   </div>
-                )}
-                
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                  <span className="text-gray-700 font-medium text-sm sm:text-base">Date:</span>
-                  <span className="text-gray-800 text-sm sm:text-base">
-                    {new Date().toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
                 </div>
+                <button
+                  onClick={() => copyToClipboard(paymentIntentId, 'payment')}
+                  className="flex-shrink-0 p-2.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200"
+                  title="Copy Payment ID"
+                >
+                  {copiedField === 'payment' ? (
+                    <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
 
+            {/* Transaction ID */}
+            {txId && (
+              <div className="group bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 hover:border-gray-200 transition-all duration-200">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      Transaction ID
+                    </label>
+                    <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                      <span className="sm:hidden">{truncateId(txId, true)}</span>
+                      <span className="hidden sm:inline">{txId}</span>
+                    </div>
+                    <a 
+                      href={`https://explorer.stacks.co/txid/${txId}?chain=testnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center mt-3 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      <span>View on Explorer</span>
+                      <svg className="w-4 h-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(txId, 'transaction')}
+                    className="flex-shrink-0 p-2.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200"
+                    title="Copy Transaction ID"
+                  >
+                    {copiedField === 'transaction' ? (
+                      <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Timestamp */}
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                Timestamp
+              </label>
+              <div className="text-sm sm:text-base text-gray-900">
+                {new Date().toLocaleDateString('en-US', { 
+                  weekday: 'long',
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric'
+                })} at {new Date().toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions Section */}
+          <div className="px-8 py-6 sm:px-12 bg-white border-t border-gray-100">
             {status === 'success' && (
               <div className="space-y-3">
                 <button 
-                  onClick={() => window.print()}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                  onClick={() => window.location.href = '/'}
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                 >
-                  Print Receipt
+                  Return to Merchant
                 </button>
-                {txId && (
-                  <a
-                    href={`https://explorer.stacks.co/txid/${txId}?chain=testnet`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-6 rounded-xl font-semibold text-center transition-colors duration-200"
-                  >
-                    View on Stacks Explorer
-                  </a>
-                )}
+                <button 
+                  onClick={() => window.print()}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200"
+                >
+                  Download Receipt
+                </button>
               </div>
             )}
 
             {status === 'failed' && (
               <button 
-                onClick={() => window.location.href = `/checkout/${paymentIntentId}`}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                onClick={() => window.history.back()}
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
               >
                 Try Again
               </button>
             )}
 
             {status === 'pending' && (
-              <div className="space-y-4">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center space-x-2 text-sm text-gray-600 mb-4">
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                  <span>Waiting for blockchain confirmation...</span>
+                </div>
                 <button 
                   onClick={() => window.location.reload()}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200"
                 >
                   Refresh Status
                 </button>
-                <p className="text-sm text-gray-500 leading-relaxed">
-                  This page will automatically update when the payment is confirmed
-                </p>
               </div>
             )}
           </div>
         </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+            Powered by sBTC Payment Gateway
+          </p>
+        </div>
       </div>
 
-      <div className="mt-8 text-center">
-        <p className="text-sm text-gray-400 font-medium">
-          Powered by sBTC Payment Gateway
-        </p>
-      </div>
+      {/* Add animation styles */}
+      <style jsx>{`
+        @keyframes scale-in {
+          from {
+            transform: scale(0.95);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        
+        .animate-scale-in {
+          animation: scale-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
