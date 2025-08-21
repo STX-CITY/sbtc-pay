@@ -38,6 +38,7 @@ export function formatPaymentIntentResponse(paymentIntent: any) {
     currency: paymentIntent.currency,
     status: paymentIntent.status,
     customer_address: paymentIntent.customerAddress,
+    customer_email: paymentIntent.customerEmail,
     description: paymentIntent.description,
     metadata: paymentIntent.metadata,
     tx_id: paymentIntent.txId,

@@ -29,6 +29,7 @@ export interface PaymentIntentResponse {
   currency: 'sbtc';
   status: 'created' | 'pending' | 'succeeded' | 'failed' | 'canceled';
   customer_address?: string;
+  customer_email?: string;
   description?: string;
   metadata?: Record<string, string>;
   payment_method?: string;
