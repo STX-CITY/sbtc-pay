@@ -1,5 +1,6 @@
 import { ApiKeysSection } from '@/components/dashboard/api-keys-section';
 import { WebhooksSection } from '@/components/dashboard/webhooks-section';
+import { WebhookTester } from '@/components/dashboard/webhook-tester';
 
 export default function DevelopersPage() {
   return (
@@ -11,6 +12,7 @@ export default function DevelopersPage() {
 
       <ApiKeysSection />
       <WebhooksSection />
+      <WebhookTester />
     </div>
   );
 }
