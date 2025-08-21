@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import useWalletStore from '@/stores/WalletStore';
-import { validateStacksAddress } from '@/lib/stacks/sbtc';
+import { validateStacksAddress } from '@/lib/stacks/validation';
 import { type NetworkType } from '@/lib/stacks/config';
 
 export interface WalletState {

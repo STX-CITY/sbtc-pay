@@ -1,17 +1,12 @@
 import { request } from '@stacks/connect';
 import {
-  Cl,
   uintCV,
   standardPrincipalCV,
-  someCV,
-  noneCV,
-  bufferCVFromString,
-  PostCondition
+  noneCV
 } from '@stacks/transactions';
 import { SBTC_CONTRACT, getCurrentNetwork, type NetworkType, MICROUNITS_PER_SBTC } from './config';
-import { fetchBlockHeight } from './blockheight';
 import { validateStacksAddress } from './validation';
-import { logVercelEnvironment } from '../debug/vercel-debug';
+import { fetchBlockHeight } from './blockheight';
 
 export interface SBTCTransferParams {
   paymentIntentId: string;
@@ -27,7 +22,7 @@ export interface SBTCTransferResult {
   paymentIntentId?: string;
 }
 
-export const transferSBTC = async ({
+export const transferSBTCLegacy = async ({
   paymentIntentId,
   amount,
   sender,
@@ -37,9 +32,6 @@ export const transferSBTC = async ({
   
 }: SBTCTransferParams): Promise<SBTCTransferResult> => {
   try {
-    // Log environment info for Vercel debugging
-    logVercelEnvironment();
-    
     const contractConfig = SBTC_CONTRACT[network];
 
     // Validate inputs
@@ -55,15 +47,7 @@ export const transferSBTC = async ({
       throw new Error('Memo must be 34 bytes or less');
     }
 
-    // Create the asset string for sBTC
-    const assetString = `${contractConfig.address}.${contractConfig.name}::sbtc`;
-
-    // Create post conditions to ensure the exact amount is transferred
-    // const postConditions: PostCondition[] = [
-    //   Pc.principal(sender).willSendEq(amount).ft(assetString, 0)
-    // ];
-
-    console.log('Initiating sBTC transfer:', {
+    console.log('Initiating sBTC transfer (Legacy):', {
       contractAddress: contractConfig.address,
       contractName: contractConfig.name,
       amount: `${amount} microsBTC (${amount / MICROUNITS_PER_SBTC} sBTC)`,
@@ -73,39 +57,15 @@ export const transferSBTC = async ({
       network
     });
 
-    // Debug Stacks SDK availability
-    console.log('SDK Debug Info:', {
-      ClObject: typeof Cl,
-      ClUintAvailable: typeof Cl?.uint,
-      ClPrincipalAvailable: typeof Cl?.principal,
-      ClNoneAvailable: typeof Cl?.none,
-      uintCVAvailable: typeof uintCV,
-      standardPrincipalCVAvailable: typeof standardPrincipalCV,
-      noneCVAvailable: typeof noneCV
-    });
-
-    // Create function arguments with fallback for different Stacks SDK versions
-    let functionArgs;
-    try {
-      // Try modern Cl syntax first
-      functionArgs = [
-        Cl.uint ? Cl.uint(amount) : uintCV(amount),
-        Cl.principal ? Cl.principal(sender) : standardPrincipalCV(sender),
-        Cl.principal ? Cl.principal(recipient) : standardPrincipalCV(recipient),
-        Cl.none ? Cl.none() : noneCV()
-      ];
-    } catch (error) {
-      // Fallback to legacy CV functions
-      console.warn('Using legacy CV functions due to Cl error:', error);
-      functionArgs = [
-        uintCV(amount),
-        standardPrincipalCV(sender),
-        standardPrincipalCV(recipient),
-        noneCV()
-      ];
-    }
+    // Use proven legacy CV functions
+    const functionArgs = [
+      uintCV(amount),                    // amount in microsBTC
+      standardPrincipalCV(sender),       // sender address
+      standardPrincipalCV(recipient),    // recipient address
+      noneCV()                          // no memo for now
+    ];
     
-    console.log('Function args created:', functionArgs);
+    console.log('Legacy function args created:', functionArgs);
     
     // Use request API for contract call
     const response = await request('stx_callContract', {
@@ -133,7 +93,6 @@ export const transferSBTC = async ({
             tx_id: txCorrectFormat
           })
         });
-        debugger;
         
         if (updateResponse.ok) {
           console.log(`Updated payment intent ${paymentIntentId} with transaction ID: ${response.txid}`);
@@ -149,7 +108,6 @@ export const transferSBTC = async ({
     const currentBlockHeight = await fetchBlockHeight(network);
 
     // Use chainhooks to listen for the tx to be confirmed and update the database
-    
     await fetch('/api/chainhooks/payments/create', {
       method: 'POST',
       headers: {
@@ -161,62 +119,13 @@ export const transferSBTC = async ({
         network: network
       }),
     });
-    
 
     return {
       txId: response.txid || '',
       paymentIntentId
     };
   } catch (error) {
-    console.error('sBTC transfer failed:', error);
+    console.error('sBTC transfer failed (Legacy):', error);
     throw new Error(`sBTC transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-};
-
-// Get sBTC balance for an address using Stacks API
-export const getSBTCBalance = async (
-  address: string, 
-  network: NetworkType = getCurrentNetwork()
-): Promise<number> => {
-  try {
-    const contractConfig = SBTC_CONTRACT[network];
-    
-    // Use Stacks API to get balance instead of contract call
-    const apiUrl = network === 'mainnet' 
-      ? 'https://api.stacks.co'
-      : 'https://api.testnet.stacks.co';
-    
-    const contractId = `${contractConfig.address}.${contractConfig.name}`;
-    const response = await fetch(
-      `${apiUrl}/extended/v1/address/${address}/balances`
-    );
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch balance: ${response.statusText}`);
-    }
-    
-    const balanceData = await response.json();
-    const sbtcBalance = balanceData.fungible_tokens?.[contractId];
-    
-    return parseInt(sbtcBalance?.balance || '0');
-  } catch (error) {
-    console.error('Failed to get sBTC balance:', error);
-    throw new Error(`Failed to get sBTC balance: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-};
-
-
-// Convert between sBTC and microsBTC
-export const sbtcToMicrosBTC = (sbtcAmount: number): number => {
-  return Math.floor(sbtcAmount * MICROUNITS_PER_SBTC);
-};
-
-export const microsBTCToSBTC = (microsBTCAmount: number): number => {
-  return microsBTCAmount / MICROUNITS_PER_SBTC;
-};
-
-// Format sBTC amount for display
-export const formatSBTCAmount = (microsBTCAmount: number, decimals: number = 8): string => {
-  const sbtcAmount = microsBTCToSBTC(microsBTCAmount);
-  return sbtcAmount.toFixed(decimals);
 };
