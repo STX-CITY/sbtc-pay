@@ -84,6 +84,8 @@ export const transferSBTC = async ({
       network: 'testnet'
     });
 
+    const txCorrectFormat = response.txid?.startsWith('0x') ? response.txid : `0x${response.txid}`;
+
     // Update the payment intent with the tx id
     if (response.txid) {
       try {
@@ -96,7 +98,7 @@ export const transferSBTC = async ({
             'Authorization': `Bearer ${apiKey}`
           },
           body: JSON.stringify({
-            tx_id: response.txid
+            tx_id: txCorrectFormat
           })
         });
         debugger;
@@ -122,7 +124,7 @@ export const transferSBTC = async ({
     }
 
     // Use chainhooks to listen for the tx to be confirmed and update the database
-    const txCorrectFormat = response.txid?.startsWith('0x') ? response.txid : `0x${response.txid}`;
+    
     await fetch('/api/chainhooks/payments/create', {
       method: 'POST',
       headers: {

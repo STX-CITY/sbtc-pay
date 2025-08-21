@@ -60,8 +60,8 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
   };
 
   const handlePaymentSuccess = (txId: string) => {
-    // Redirect to success page or update UI
-    window.location.href = `/checkout/${paymentIntentId}?status=success&tx=${txId}`;
+    // Redirect to checkout page with tx_broadcast status
+    window.location.href = `/checkout/${paymentIntentId}?status=tx_broadcast&tx=${txId}`;
   };
 
   const handlePaymentError = (error: string) => {
