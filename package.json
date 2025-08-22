@@ -3,14 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@heroui/react": "^2.8.2",
