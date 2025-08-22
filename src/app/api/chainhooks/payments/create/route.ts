@@ -26,7 +26,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     webhookUrl = process.env.WEBHOOK_URL || "https://72d502e8d2dc.ngrok-free.app/api/chainhooks/payments/hook";
   } else {
     // Production webhook URL
-    webhookUrl = process.env.PRODUCTION_WEBHOOK_URL || "https://your-production-domain.com/api/chainhooks/payments/hook";
+    webhookUrl = process.env.PRODUCTION_WEBHOOK_URL || "https://sbtcpay.org/api/chainhooks/payments/hook";
   }
 
   // Get environment variables

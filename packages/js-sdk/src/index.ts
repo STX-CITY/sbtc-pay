@@ -256,7 +256,7 @@ class SBTCGateway {
 
   constructor(config: SBTCGatewayConfig) {
     this.apiKey = config.apiKey;
-    this.apiBase = config.apiBase || 'https://api.sbtcgateway.com';
+    this.apiBase = config.apiBase || 'https://sbtcpay.org';
     this.paymentIntents = new PaymentIntents(this);
     this.products = new Products(this);
     this.webhookEndpoints = new WebhookEndpoints(this);
@@ -296,13 +296,13 @@ class SBTCGateway {
 
   // Utility methods
   static async getExchangeRate(apiBase?: string): Promise<{ sbtc_usd: number; timestamp: number; source: string }> {
-    const base = apiBase || 'https://api.sbtcgateway.com';
+    const base = apiBase || 'https://sbtcpay.org';
     const response = await fetch(`${base}/v1/public/exchange_rate`);
     return response.json();
   }
 
   static async validateAddress(address: string, apiBase?: string): Promise<{ address: string; valid: boolean; network: string }> {
-    const base = apiBase || 'https://api.sbtcgateway.com';
+    const base = apiBase || 'https://sbtcpay.org';
     const response = await fetch(`${base}/v1/public/validate_address`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -312,7 +312,7 @@ class SBTCGateway {
   }
 
   static async getPublicPaymentIntent(id: string, apiBase?: string): Promise<PaymentIntent> {
-    const base = apiBase || 'https://api.sbtcgateway.com';
+    const base = apiBase || 'https://sbtcpay.org';
     const response = await fetch(`${base}/v1/public/payment_intents/${id}`);
     return response.json();
   }

@@ -4,7 +4,7 @@
 
   // Default configuration
   const DEFAULT_CONFIG = {
-    apiBase: 'https://api.sbtcgateway.com',
+    apiBase: 'https://sbtcpay.org',
     checkoutBase: 'https://checkout.sbtcgateway.com',
     styles: {
       button: {

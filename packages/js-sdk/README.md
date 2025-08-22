@@ -15,7 +15,7 @@ import SBTCGateway from '@sbtc-gateway/js';
 
 const gateway = new SBTCGateway({
   apiKey: 'your-api-key-here',
-  apiBase: 'https://api.sbtcgateway.com' // optional
+  apiBase: 'https://sbtcpay.org' // optional
 });
 
 // Create a payment intent

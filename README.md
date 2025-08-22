@@ -76,13 +76,13 @@ Visit http://localhost:3000 to see the landing page.
 
 Use your API key in the Authorization header:
 ```bash
-curl -H "Authorization: sk_test_..." https://api.sbtcgateway.com/v1/payment_intents
+curl -H "Authorization: sk_test_..." https://sbtcpay.org/v1/payment_intents
 ```
 
 ### Create Payment Intent
 
 ```bash
-curl -X POST https://api.sbtcgateway.com/v1/payment_intents \
+curl -X POST https://sbtcpay.org/v1/payment_intents \
   -H "Authorization: sk_test_..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -184,7 +184,7 @@ function App() {
 Configure webhook endpoints to receive real-time notifications:
 
 ```bash
-curl -X POST https://api.sbtcgateway.com/v1/webhooks \
+curl -X POST https://sbtcpay.org/v1/webhooks \
   -H "Authorization: sk_test_..." \
   -d '{
     "url": "https://example.com/webhooks/sbtc"
