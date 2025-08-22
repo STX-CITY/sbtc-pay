@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatSBTCAmount } from '@/lib/stacks/sbtc';
@@ -24,20 +24,21 @@ interface Product {
 export default function ProductDetailsPage({ 
   params 
 }: { 
-  params: { id: string } 
+  params: Promise<{ id: string }> 
 }) {
   const router = useRouter();
+  const resolvedParams = use(params);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProduct();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   const fetchProduct = async () => {
     try {
-      const response = await fetch(`/api/v1/products/${params.id}`, {
+      const response = await fetch(`/api/v1/products/${resolvedParams.id}`, {
         headers: getAuthHeaders()
       });
 
@@ -62,7 +63,7 @@ export default function ProductDetailsPage({
     try {
       const apiKey = localStorage.getItem('api_key') || process.env.NEXT_PUBLIC_TEST_API_KEY;
       
-      const response = await fetch(`/api/v1/products/${params.id}`, {
+      const response = await fetch(`/api/v1/products/${resolvedParams.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${apiKey}`
