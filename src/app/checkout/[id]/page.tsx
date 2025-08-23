@@ -64,7 +64,7 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
       // Determine network based on environment
       const isMainnet = process.env.NODE_ENV === 'production';
       const apiUrl = isMainnet 
-        ? `https://api.mainnet.hiro.so/extended/v1/tx/${txId}`
+        ? `https://api.testnet.hiro.so/extended/v1/tx/${txId}`
         : `https://api.testnet.hiro.so/extended/v1/tx/${txId}`;
 
       const response = await fetch(apiUrl);
@@ -293,7 +293,7 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
                   <p className="text-sm text-gray-600 mb-2">Transaction ID:</p>
                   <p className="font-mono text-xs text-gray-500 break-all">
-                    {effectiveTxId}
+                    0x{effectiveTxId}
                   </p>
                 </div>
               )}
