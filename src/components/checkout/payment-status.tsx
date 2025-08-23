@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface PaymentStatusProps {
   status: 'success' | 'failed' | 'pending';
@@ -12,7 +12,26 @@ interface PaymentStatusProps {
 
 export function PaymentStatus({ status, paymentIntentId, txId, merchantRedirectUrl, merchantName }: PaymentStatusProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number>(10);
   
+  // Auto-redirect countdown for successful payments with redirect URL
+  useEffect(() => {
+    if (status === 'success' && merchantRedirectUrl) {
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            window.location.href = merchantRedirectUrl;
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [status, merchantRedirectUrl]);
+
   const copyToClipboard = async (text: string, field: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -238,11 +257,22 @@ export function PaymentStatus({ status, paymentIntentId, txId, merchantRedirectU
               <div className="space-y-3">
                 {merchantRedirectUrl ? (
                   <>
+                    <div className="text-center mb-3">
+                      <p className="text-sm text-gray-600">
+                        Auto-redirect in <span className="font-bold text-gray-900">{countdown}</span> seconds
+                      </p>
+                      <div className="w-full bg-gray-200 rounded-full h-1 mt-2 overflow-hidden">
+                        <div 
+                          className="bg-blue-600 h-full transition-all duration-1000 ease-linear"
+                          style={{ width: `${(countdown / 10) * 100}%` }}
+                        />
+                      </div>
+                    </div>
                     <button 
                       onClick={() => window.location.href = merchantRedirectUrl}
                       className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                     >
-                      {merchantName ? `Return to ${merchantName}` : 'Return to Merchant'}
+                      {merchantName ? `Go back to ${merchantName}` : 'Go back to Merchant'}
                     </button>
                     <button 
                       onClick={() => window.print()}
