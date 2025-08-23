@@ -128,34 +128,89 @@ export default function LandingPage() {
               </Link>
             </motion.div>
 
-            {/* Live Demo */}
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 border"
-            >
-              <div className="text-center mb-6">
-                <h3 className="font-semibold text-gray-900 mb-2">Try it now</h3>
-                <p className="text-gray-600 text-sm">Experience our payment flow</p>
-              </div>
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Demo Product</span>
-                  <span className="font-medium">$50</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">sBTC Amount</span>
-                  <span className="font-medium">0.00050761 sBTC</span>
-                </div>
-              </div>
-              <Link 
-                href="/checkout/product/prod_dJ5wruTLdgEYUFt3"
-                className="block w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+            {/* Demo Section */}
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {/* Quick Demo */}
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="bg-white rounded-2xl shadow-xl p-6 border"
               >
-                Try demo checkout
-              </Link>
-            </motion.div>
+                <div className="text-center mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-2">Try it now</h3>
+                  <p className="text-gray-600 text-sm">Experience our payment flow</p>
+                </div>
+                <div className="space-y-3 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Demo Product</span>
+                    <span className="font-medium">$50</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">sBTC Amount</span>
+                    <span className="font-medium">0.00050761 sBTC</span>
+                  </div>
+                </div>
+                <Link 
+                  href="/checkout/product/prod_dJ5wruTLdgEYUFt3"
+                  className="block w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+                >
+                  Try demo checkout
+                </Link>
+              </motion.div>
+
+              {/* Live Demo Site */}
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+                className="bg-white rounded-2xl shadow-xl p-6 border"
+              >
+                <div className="text-center mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-2">Live Demo Site</h3>
+                  <p className="text-gray-600 text-sm">A education platform - Learn from industry experts and pay with Bitcoin using sBTC</p>
+                </div>
+                
+                {/* Demo Image */}
+                <div className="mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden">
+                  <img 
+                    src="/demo-sbtc-site.jpg"
+                    alt="Education Platform Demo - Learn from industry experts and pay with Bitcoin"
+                    className="w-full h-32 object-cover"
+                    onError={(e) => {
+                      // Fallback to placeholder if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'block';
+                    }}
+                  />
+                  <div className="p-8 text-center" style={{ display: 'none' }}>
+                    <div className="text-gray-400 text-4xl mb-2">🎓</div>
+                    <p className="text-gray-500 text-sm">Education Platform Demo</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <a 
+                    href="https://demo.sbtcpay.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full bg-gradient-to-r from-green-600 to-blue-600 text-white text-center py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+                  >
+                    View Live Demo ↗
+                  </a>
+                  <a 
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full border border-gray-300 text-gray-700 text-center py-2 rounded-lg font-medium hover:bg-gray-50 transition-all duration-300 text-sm"
+                  >
+                    View Source Code ↗
+                  </a>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
