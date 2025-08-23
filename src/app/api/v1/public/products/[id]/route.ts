@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, products } from '@/lib/db';
+import { db, products, merchants } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
 
 export async function GET(
@@ -9,9 +9,13 @@ export async function GET(
   try {
     const { id } = await params;
     
-    const [product] = await db
-      .select()
+    const result = await db
+      .select({
+        product: products,
+        merchantName: merchants.name
+      })
       .from(products)
+      .leftJoin(merchants, eq(products.merchantId, merchants.id))
       .where(
         and(
           eq(products.id, id),
@@ -20,12 +24,14 @@ export async function GET(
       )
       .limit(1);
 
-    if (!product) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: { type: 'resource_missing', message: 'Product not found' } },
         { status: 404 }
       );
     }
+
+    const { product, merchantName } = result[0];
 
     return NextResponse.json({
       id: product.id,
@@ -37,6 +43,7 @@ export async function GET(
       currency: product.currency,
       images: product.images,
       merchantId: product.merchantId, // Include merchantId for payment intent creation
+      merchant_name: merchantName,
       // Don't expose metadata publicly
       created: Math.floor(product.createdAt.getTime() / 1000)
     });

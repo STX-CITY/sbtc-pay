@@ -14,6 +14,8 @@ interface PaymentIntent {
   status: 'created' | 'pending' | 'succeeded' | 'failed' | 'canceled';
   tx_id?: string;
   amount: number;
+  merchant_redirect_url?: string;
+  merchant_name?: string;
 }
 
 export default function CheckoutPage({ params, searchParams }: CheckoutPageProps) {
@@ -140,6 +142,7 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
         throw new Error(errorData.error?.message || 'Payment intent not found');
       }
 
+      debugger;
       const data = await response.json();
       setPaymentIntent(data);
       setLoading(false);
@@ -317,6 +320,8 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
           status="success" 
           paymentIntentId={paymentIntentId}
           txId={effectiveTxId}
+          merchantRedirectUrl={paymentIntent?.merchant_redirect_url}
+          merchantName={paymentIntent?.merchant_name}
         />
       </div>
     );
@@ -329,6 +334,8 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
           status="failed" 
           paymentIntentId={paymentIntentId}
           txId={effectiveTxId}
+          merchantRedirectUrl={paymentIntent?.merchant_redirect_url}
+          merchantName={paymentIntent?.merchant_name}
         />
       </div>
     );
@@ -341,6 +348,8 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
           status="pending" 
           paymentIntentId={paymentIntentId}
           txId={effectiveTxId}
+          merchantRedirectUrl={paymentIntent?.merchant_redirect_url}
+          merchantName={paymentIntent?.merchant_name}
         />
       </div>
     );

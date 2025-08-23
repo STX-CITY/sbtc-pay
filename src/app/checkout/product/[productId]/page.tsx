@@ -11,6 +11,7 @@ interface Product {
   price: number;
   price_usd?: number;
   images?: string[];
+  merchant_name?: string;
 }
 
 export default function ProductCheckoutPage({ 
@@ -131,7 +132,15 @@ export default function ProductCheckoutPage({
           <div className="md:flex">
             {/* Product Info */}
             <div className="md:w-1/2 p-8 bg-gray-50">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{product.name}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h2>
+              {product.merchant_name && (
+                <div className="flex items-center mb-4">
+                  <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium">
+                    <span className="mr-1">🏪</span>
+                    {product.merchant_name}
+                  </div>
+                </div>
+              )}
               
               {product.images && product.images[0] && (
                 <div className="mb-4">

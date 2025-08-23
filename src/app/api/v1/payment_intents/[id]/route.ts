@@ -15,7 +15,9 @@ export async function GET(
       .select({
         paymentIntent: paymentIntents,
         merchantRecipientAddress: merchants.recipientAddress,
-        merchantStacksAddress: merchants.stacksAddress
+        merchantStacksAddress: merchants.stacksAddress,
+        merchantRedirectUrl: merchants.checkoutRedirectUrl,
+        merchantName: merchants.name
       })
       .from(paymentIntents)
       .leftJoin(merchants, eq(paymentIntents.merchantId, merchants.id))
@@ -29,12 +31,14 @@ export async function GET(
       );
     }
 
-    const { paymentIntent, merchantRecipientAddress, merchantStacksAddress } = result[0];
+    const { paymentIntent, merchantRecipientAddress, merchantStacksAddress, merchantRedirectUrl, merchantName } = result[0];
     const formattedPaymentIntent = formatPaymentIntentResponse(paymentIntent);
     
     return NextResponse.json({
       ...formattedPaymentIntent,
-      recipient_address: merchantRecipientAddress || merchantStacksAddress
+      recipient_address: merchantRecipientAddress || merchantStacksAddress,
+      merchant_redirect_url: merchantRedirectUrl,
+      merchant_name: merchantName
     });
   } catch (error) {
     console.error('Error fetching payment intent:', error);

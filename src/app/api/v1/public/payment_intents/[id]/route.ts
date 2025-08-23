@@ -54,12 +54,14 @@ export async function GET(
   try {
     const { id: paymentIntentId } = await params;
 
-    // Join with merchants to get the recipient address
+    // Join with merchants to get the recipient address and redirect info
     const result = await db
       .select({
         paymentIntent: paymentIntents,
         merchantStacksAddress: merchants.stacksAddress,
-        merchantRecipientAddress: merchants.recipientAddress
+        merchantRecipientAddress: merchants.recipientAddress,
+        merchantRedirectUrl: merchants.checkoutRedirectUrl,
+        merchantName: merchants.name
       })
       .from(paymentIntents)
       .leftJoin(merchants, eq(paymentIntents.merchantId, merchants.id))
@@ -73,7 +75,7 @@ export async function GET(
       );
     }
 
-    const { paymentIntent, merchantStacksAddress, merchantRecipientAddress } = result[0];
+    const { paymentIntent, merchantStacksAddress, merchantRecipientAddress, merchantRedirectUrl, merchantName } = result[0];
     
     // If payment has a tx_id and status is pending, re-check with Hiro API
     // This is a fallback in case chainhook has an error
@@ -127,6 +129,8 @@ export async function GET(
       customer_address: paymentIntent.customerAddress,
       recipient_address: merchantRecipientAddress || merchantStacksAddress, // Where customer should send payment
       tx_id: paymentIntent.txId, // Include tx_id if available
+      merchant_redirect_url: merchantRedirectUrl, // Include merchant redirect URL
+      merchant_name: merchantName, // Include merchant name
       created: Math.floor(paymentIntent.createdAt.getTime() / 1000),
       
       // Include product data from metadata if available
