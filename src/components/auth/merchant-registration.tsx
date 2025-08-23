@@ -212,7 +212,7 @@ export function MerchantRegistration() {
               placeholder="https://yourdomain.com/webhook"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Receive real-time payment notifications
+              Receive real-time payment notifications. You can set it up later.
             </p>
           </div>
 

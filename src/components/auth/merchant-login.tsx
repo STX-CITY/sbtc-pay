@@ -22,13 +22,20 @@ export function MerchantLogin() {
   const [isMainnetWallet, setIsMainnetWallet] = useState(false);
 
   const handleWalletLogin = async () => {
+    if (isConnected) {
+      // If already connected, just re-check registration
+      setLoading(true);
+      setError(null);
+      checkMerchantRegistration(currentAddress);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
     try {
-      // First connect the wallet
+      // Connect the wallet (registration check will happen automatically via useEffect)
       await connectWallet();
-      
     } catch (err) {
       setError('Failed to connect wallet. Please try again.');
       setLoading(false);
@@ -80,7 +87,7 @@ export function MerchantLogin() {
 
   // Check registration when wallet is connected
   useEffect(() => {
-    if (isConnected && currentAddress && loading) {
+    if (isConnected && currentAddress) {
       // Check if using mainnet wallet (address starts with SP)
       if (currentAddress.startsWith('SP')) {
         setIsMainnetWallet(true);
@@ -88,9 +95,11 @@ export function MerchantLogin() {
         setLoading(false);
         return;
       }
+      // Auto-check registration when wallet connects
+      setLoading(true);
       checkMerchantRegistration(currentAddress);
     }
-  }, [isConnected, currentAddress, loading]);
+  }, [isConnected, currentAddress]);
 
   // Check for mainnet wallet on network change
   useEffect(() => {
@@ -153,7 +162,7 @@ export function MerchantLogin() {
               : 'bg-blue-500 hover:bg-blue-600 text-white'
           }`}
         >
-          {loading ? 'Checking...' : isMainnetWallet ? 'Please switch to testnet' : isConnected ? '✓ Wallet Connected - Verifying...' : 'Connect Wallet (Testnet)'}
+          {loading ? 'Verifying Registration...' : isMainnetWallet ? 'Please switch to testnet' : isConnected ? 'Retry Verification' : 'Connect Wallet (Testnet)'}
         </button>
         
         {isConnected && !loading && (
