@@ -9,6 +9,7 @@ interface MerchantProfile {
   stacksAddress: string;
   recipientAddress?: string;
   webhookUrl?: string;
+  checkoutRedirectUrl?: string;
   apiKeyTest: string;
   created: number;
 }
@@ -24,7 +25,8 @@ export function MerchantProfile() {
     name: '',
     email: '',
     recipientAddress: '',
-    webhookUrl: ''
+    webhookUrl: '',
+    checkoutRedirectUrl: ''
   });
 
   useEffect(() => {
@@ -51,7 +53,8 @@ export function MerchantProfile() {
         name: data.name,
         email: data.email,
         recipientAddress: data.recipientAddress || data.stacksAddress,
-        webhookUrl: data.webhookUrl || ''
+        webhookUrl: data.webhookUrl || '',
+        checkoutRedirectUrl: data.checkoutRedirectUrl || ''
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
