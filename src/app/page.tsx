@@ -142,15 +142,15 @@ export default function LandingPage() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Demo Product</span>
-                  <span className="font-medium">$29.99</span>
+                  <span className="font-medium">$50</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">sBTC Amount</span>
-                  <span className="font-medium">0.0003 sBTC</span>
+                  <span className="font-medium">0.00050761 sBTC</span>
                 </div>
               </div>
               <Link 
-                href="/checkout/pi_demo123456"
+                href="/checkout/product/prod_dJ5wruTLdgEYUFt3"
                 className="block w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
               >
                 Try demo checkout
