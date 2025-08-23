@@ -15,10 +15,11 @@ interface MerchantData {
 
 export function MerchantLogin() {
   const router = useRouter();
-  const { isConnected, currentAddress, connectWallet } = useWalletStore();
+  const { isConnected, currentAddress, connectWallet, disconnectWallet, network } = useWalletStore();
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMainnetWallet, setIsMainnetWallet] = useState(false);
 
   const handleWalletLogin = async () => {
     setLoading(true);
@@ -32,6 +33,12 @@ export function MerchantLogin() {
       setError('Failed to connect wallet. Please try again.');
       setLoading(false);
     }
+  };
+
+  const handleDisconnectAndSwitch = () => {
+    disconnectWallet();
+    setIsMainnetWallet(false);
+    setError(null);
   };
 
   const checkMerchantRegistration = async (address: string) => {
@@ -74,9 +81,28 @@ export function MerchantLogin() {
   // Check registration when wallet is connected
   useEffect(() => {
     if (isConnected && currentAddress && loading) {
+      // Check if using mainnet wallet (address starts with SP)
+      if (currentAddress.startsWith('SP')) {
+        setIsMainnetWallet(true);
+        setError('Mainnet wallet detected. Please disconnect and switch to testnet.');
+        setLoading(false);
+        return;
+      }
       checkMerchantRegistration(currentAddress);
     }
   }, [isConnected, currentAddress, loading]);
+
+  // Check for mainnet wallet on network change
+  useEffect(() => {
+    if (isConnected && currentAddress) {
+      if (currentAddress.startsWith('SP') || network === 'mainnet') {
+        setIsMainnetWallet(true);
+        setError('Mainnet wallet detected. Please disconnect and switch to testnet.');
+      } else {
+        setIsMainnetWallet(false);
+      }
+    }
+  }, [network, currentAddress, isConnected]);
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow p-6">
@@ -88,14 +114,29 @@ export function MerchantLogin() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
           {error}
+          {isMainnetWallet && (
+            <button
+              onClick={handleDisconnectAndSwitch}
+              className="mt-2 block w-full bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700"
+            >
+              Disconnect Wallet & Switch Network
+            </button>
+          )}
         </div>
       )}
 
       <div className="space-y-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
+          <h3 className="font-medium text-yellow-900 mb-2">⚠️ Testnet Only</h3>
+          <p className="text-sm text-yellow-800">
+            This application currently supports testnet wallets only. Please ensure your wallet is connected to testnet before proceeding.
+          </p>
+        </div>
+
         <div className="bg-blue-50 border border-blue-200 rounded p-4">
           <h3 className="font-medium text-blue-900 mb-2">How it works:</h3>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>1. Connect your Stacks wallet</li>
+            <li>1. Connect your Stacks wallet (testnet)</li>
             <li>2. We check if your address is registered</li>
             <li>3. Access your merchant dashboard</li>
           </ul>
@@ -103,16 +144,16 @@ export function MerchantLogin() {
 
         <button
           onClick={handleWalletLogin}
-          disabled={loading}
+          disabled={loading || isMainnetWallet}
           className={`w-full py-3 px-4 rounded font-medium ${
-            loading 
+            loading || isMainnetWallet
               ? 'bg-gray-400 cursor-not-allowed' 
               : isConnected
               ? 'bg-green-500 text-white'
               : 'bg-blue-500 hover:bg-blue-600 text-white'
           }`}
         >
-          {loading ? 'Checking...' : isConnected ? '✓ Wallet Connected - Verifying...' : 'Connect Wallet'}
+          {loading ? 'Checking...' : isMainnetWallet ? 'Please switch to testnet' : isConnected ? '✓ Wallet Connected - Verifying...' : 'Connect Wallet (Testnet)'}
         </button>
         
         {isConnected && !loading && (

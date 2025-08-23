@@ -115,16 +115,13 @@ const useWalletStore = create(
                   // Determine if it's mainnet or testnet based on prefix
                   if (stxAddress.startsWith('SP')) {
                     mainnetAddress = stxAddress;
-                    // For testnet, we'll use the same address structure but it would start with ST
-                    testnetAddress = stxAddress.replace('SP', 'ST');
                   } else if (stxAddress.startsWith('ST')) {
                     testnetAddress = stxAddress;
-                    mainnetAddress = stxAddress.replace('ST', 'SP');
                   }
                 }
                 
                 // Fallback to data from connection response
-                if (!mainnetAddress && data.authResponse?.profile?.stxAddress) {
+                if (!mainnetAddress && !testnetAddress && data.authResponse?.profile?.stxAddress) {
                   mainnetAddress = data.authResponse.profile.stxAddress.mainnet || '';
                   testnetAddress = data.authResponse.profile.stxAddress.testnet || '';
                 }
@@ -144,8 +141,15 @@ const useWalletStore = create(
                   userSession: data.userSession
                 };
                 
-                // Set the appropriate address based on current network
-                const currentAddress = networkType === 'mainnet' ? mainnetAddress : testnetAddress;
+                // Set the appropriate address - use whatever address is available
+                // If network is testnet but only mainnet address exists, still set it
+                // This allows the merchant-login component to detect and handle the mismatch
+                let currentAddress = '';
+                if (networkType === 'testnet') {
+                  currentAddress = testnetAddress || mainnetAddress;
+                } else {
+                  currentAddress = mainnetAddress || testnetAddress;
+                }
                 
                 set({ 
                   userData: newUserData, 
@@ -158,7 +162,7 @@ const useWalletStore = create(
                 if (currentAddress) {
                   get().fetchBalance(currentAddress);
                 }
-                get().fetchBlockHeight();
+                // get().fetchBlockHeight();
                 
                 resolve();
               },

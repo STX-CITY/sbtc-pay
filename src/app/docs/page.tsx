@@ -495,7 +495,7 @@ const paymentIntent = await sbtcPay.paymentIntents.create({
                 <div className="bg-white rounded-lg shadow-sm border p-6">
                   <h3 className="text-lg font-semibold mb-3 text-gray-900">Base URL</h3>
                   <div className="bg-gray-100 rounded p-3">
-                    <code className="text-sm">https://api.sbtcpay.com/v1</code>
+                    <code className="text-sm">https://sbtcpay.org/v1</code>
                   </div>
                 </div>
                 

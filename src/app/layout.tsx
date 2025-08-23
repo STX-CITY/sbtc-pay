@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { DocsFAB } from '@/components/docs/docs-fab';
+import { TestnetWarning } from '@/components/testnet-warning';
 
 
 export const metadata: Metadata = {
@@ -15,8 +16,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-      >
+      <body>
+        <TestnetWarning />
         {children}
         <DocsFAB />
       </body>
