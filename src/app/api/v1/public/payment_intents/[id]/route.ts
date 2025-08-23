@@ -23,7 +23,7 @@ async function checkTransactionStatus(txId: string): Promise<'pending' | 'succee
   try {
     const isMainnet = process.env.NODE_ENV === 'production';
     const apiUrl = isMainnet 
-      ? `https://api.mainnet.hiro.so/extended/v1/tx/${txId}`
+      ? `https://api.testnet.hiro.so/extended/v1/tx/${txId}`
       : `https://api.testnet.hiro.so/extended/v1/tx/${txId}`;
 
     const response = await fetch(apiUrl, { headers: getRandomHeader() });

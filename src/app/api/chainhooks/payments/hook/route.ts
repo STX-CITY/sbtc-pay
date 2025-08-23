@@ -130,7 +130,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Determine network based on environment or chainhook data
       const isMainnet = process.env.NODE_ENV === 'production';
       const apiUrl = isMainnet 
-        ? `https://api.mainnet.hiro.so/extended/v1/tx/${txId}`
+        ? `https://api.testnet.hiro.so/extended/v1/tx/${txId}`
         : `https://api.testnet.hiro.so/extended/v1/tx/${txId}`;
 
       // Fetch transaction details
