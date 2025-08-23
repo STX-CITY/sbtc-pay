@@ -11,8 +11,8 @@ export default function DocsPage() {
   // API Testing state
   const [apiKey, setApiKey] = useState('');
   const [testingApi, setTestingApi] = useState<string | null>(null);
-  const [apiResponse, setApiResponse] = useState<any>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [endpointResponses, setEndpointResponses] = useState<{[key: string]: any}>({});
+  const [endpointErrors, setEndpointErrors] = useState<{[key: string]: string}>({});
 
   const codeSnippets = {
     nextjsSetup: `// pages/api/products/create.js
@@ -283,13 +283,24 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
 
   const testApiEndpoint = async (endpoint: string, method: string, sampleData?: any) => {
     if (!apiKey) {
-      setApiError('Please enter your API key first');
+      setEndpointErrors(prev => ({ ...prev, [endpoint]: 'Please enter your API key first' }));
       return;
     }
     
-    setTestingApi(endpoint);
-    setApiResponse(null);
-    setApiError(null);
+    const endpointKey = `${method} ${endpoint}`;
+    setTestingApi(endpointKey);
+    
+    // Clear previous responses for this endpoint
+    setEndpointResponses(prev => {
+      const newResponses = { ...prev };
+      delete newResponses[endpointKey];
+      return newResponses;
+    });
+    setEndpointErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[endpointKey];
+      return newErrors;
+    });
     
     try {
       // Use the actual API base URL - adjust this to match your real API
@@ -322,24 +333,36 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
       }
       
       // Set response data whether success or error - let users see real API responses
-      setApiResponse({
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        data: data
-      });
+      setEndpointResponses(prev => ({
+        ...prev,
+        [endpointKey]: {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          data: data
+        }
+      }));
       
       // Only set error for network/parsing issues, not HTTP errors
       if (!response.ok && data.error) {
-        setApiError(`${response.status}: ${data.error.message || data.message || response.statusText}`);
+        setEndpointErrors(prev => ({
+          ...prev,
+          [endpointKey]: `${response.status}: ${data.error.message || data.message || response.statusText}`
+        }));
       }
       
     } catch (error) {
       // Network or parsing errors
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        setApiError('Network error: Could not connect to API. Make sure the server is running.');
+        setEndpointErrors(prev => ({
+          ...prev,
+          [endpointKey]: 'Network error: Could not connect to API. Make sure the server is running.'
+        }));
       } else {
-        setApiError(error instanceof Error ? error.message : 'Failed to call API');
+        setEndpointErrors(prev => ({
+          ...prev,
+          [endpointKey]: error instanceof Error ? error.message : 'Failed to call API'
+        }));
       }
     } finally {
       setTestingApi(null);
@@ -758,39 +781,16 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
               
               <div className="bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg p-6 text-white">
                 <h3 className="text-lg font-semibold mb-4">Test API Endpoints</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Enter your API key to test endpoints:</label>
-                    <input
-                      type="password"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="sk_test_your_api_key_here"
-                      className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                    />
-                  </div>
-                  
-                  {apiError && (
-                    <div className="bg-red-500 bg-opacity-30 border border-red-300 text-red-100 px-3 py-2 rounded text-sm">
-                      {apiError}
-                    </div>
-                  )}
-                  
-                  {apiResponse && (
-                    <div className={`${apiResponse.ok ? 'bg-green-500' : 'bg-orange-500'} bg-opacity-30 border ${apiResponse.ok ? 'border-green-300' : 'border-orange-300'} rounded p-3`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className={`${apiResponse.ok ? 'text-green-100' : 'text-orange-100'} font-medium text-sm`}>
-                          API Response:
-                        </h4>
-                        <span className={`text-xs px-2 py-1 rounded ${apiResponse.ok ? 'bg-green-400 text-green-900' : 'bg-orange-400 text-orange-900'}`}>
-                          {apiResponse.status} {apiResponse.statusText}
-                        </span>
-                      </div>
-                      <pre className={`${apiResponse.ok ? 'text-green-100' : 'text-orange-100'} text-xs overflow-x-auto`}>
-                        {JSON.stringify(apiResponse.data, null, 2)}
-                      </pre>
-                    </div>
-                  )}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Enter your API key to test endpoints:</label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="sk_test_your_api_key_here"
+                    className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                  />
+                  <p className="text-purple-100 text-xs mt-2">Enter your API key above, then click "Try It" on any endpoint below to test it.</p>
                 </div>
               </div>
             </div>
@@ -893,59 +893,125 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
 }`
                   }
                 }
-              ].map((api, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                  <div className="bg-gray-50 px-6 py-4 border-b">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${
-                          api.method === 'POST' ? 'bg-green-100 text-green-600' : 
-                          api.method === 'GET' ? 'bg-blue-100 text-blue-600' : 
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {api.method}
-                        </span>
-                        <code className="text-sm">{api.endpoint}</code>
+              ].map((api, index) => {
+                const endpointKey = `${api.method} ${api.endpoint}`;
+                const response = endpointResponses[endpointKey];
+                const error = endpointErrors[endpointKey];
+                const isLoading = testingApi === endpointKey;
+                
+                return (
+                  <div key={index} className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                    <div className="bg-gray-50 px-6 py-4 border-b">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <span className={`px-2 py-1 text-xs font-medium rounded ${
+                            api.method === 'POST' ? 'bg-green-100 text-green-600' : 
+                            api.method === 'GET' ? 'bg-blue-100 text-blue-600' : 
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                            {api.method}
+                          </span>
+                          <code className="text-sm">{api.endpoint}</code>
+                        </div>
+                        
+                        {/* Try It Button */}
+                        <button
+                          onClick={() => testApiEndpoint(api.endpoint, api.method, api.sampleData)}
+                          disabled={isLoading || !apiKey}
+                          className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                            isLoading 
+                              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                              : apiKey
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {isLoading ? 'Testing...' : 'Try It'}
+                        </button>
+                      </div>
+                      <div className="mt-2">
+                        <h3 className="font-semibold">{api.title}</h3>
+                        <p className="text-gray-600 text-sm">{api.description}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Side by side layout */}
+                    <div className="grid lg:grid-cols-2 gap-6 p-6">
+                      {/* Left side - Documentation */}
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium mb-2 text-gray-700">Request</h4>
+                          <div className="bg-gray-900 rounded p-3 text-xs">
+                            <pre className="text-gray-300">{api.example.request}</pre>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-2 text-gray-700">Example Response</h4>
+                          <div className="bg-gray-900 rounded p-3 text-xs">
+                            <pre className="text-gray-300">{api.example.response}</pre>
+                          </div>
+                        </div>
                       </div>
                       
-                      {/* Try It Button */}
-                      <button
-                        onClick={() => testApiEndpoint(api.endpoint, api.method, api.sampleData)}
-                        disabled={testingApi === api.endpoint || !apiKey}
-                        className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
-                          testingApi === api.endpoint 
-                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                            : apiKey
-                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        {testingApi === api.endpoint ? 'Testing...' : 'Try It'}
-                      </button>
-                    </div>
-                    <div className="mt-2">
-                      <h3 className="font-semibold">{api.title}</h3>
-                      <p className="text-gray-600 text-sm">{api.description}</p>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="font-medium mb-2">Request</h4>
-                        <div className="bg-gray-900 rounded p-3 text-xs">
-                          <pre className="text-gray-300">{api.example.request}</pre>
+                      {/* Right side - Live Response */}
+                      <div className="space-y-4">
+                        <div className="border-l-2 border-gray-200 pl-4">
+                          <h4 className="font-medium mb-2 text-gray-700 flex items-center">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                            Live Response
+                          </h4>
+                          
+                          {!apiKey && (
+                            <div className="bg-gray-50 border border-gray-200 rounded p-4 text-center">
+                              <p className="text-gray-500 text-sm">Enter your API key above to test this endpoint</p>
+                            </div>
+                          )}
+                          
+                          {apiKey && !response && !error && !isLoading && (
+                            <div className="bg-blue-50 border border-blue-200 rounded p-4 text-center">
+                              <p className="text-blue-600 text-sm">Click "Try It" to test this endpoint</p>
+                            </div>
+                          )}
+                          
+                          {isLoading && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
+                              <div className="flex items-center">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-2"></div>
+                                <span className="text-yellow-700 text-sm">Making API call...</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {error && (
+                            <div className="bg-red-50 border border-red-200 rounded p-4">
+                              <p className="text-red-700 text-sm font-medium">Error</p>
+                              <p className="text-red-600 text-xs mt-1">{error}</p>
+                            </div>
+                          )}
+                          
+                          {response && (
+                            <div className={`${response.ok ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'} border rounded p-4`}>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className={`text-sm font-medium ${response.ok ? 'text-green-700' : 'text-orange-700'}`}>
+                                  Response
+                                </span>
+                                <span className={`text-xs px-2 py-1 rounded ${response.ok ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'}`}>
+                                  {response.status} {response.statusText}
+                                </span>
+                              </div>
+                              <div className="bg-gray-900 rounded p-3 text-xs overflow-x-auto">
+                                <pre className="text-gray-300">
+                                  {JSON.stringify(response.data, null, 2)}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div>
-                        <h4 className="font-medium mb-2">Response</h4>
-                        <div className="bg-gray-900 rounded p-3 text-xs">
-                          <pre className="text-gray-300">{api.example.response}</pre>
-                        </div>
-                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

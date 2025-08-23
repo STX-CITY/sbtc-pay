@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       images: createdProduct.images,
       metadata: createdProduct.metadata,
       active: createdProduct.active,
+      checkout_url: `${request.headers.get('origin') || 'https://sbtcpay.org'}/checkout/product/${createdProduct.id}`,
       created: Math.floor(createdProduct.createdAt.getTime() / 1000),
       updated: Math.floor(createdProduct.updatedAt.getTime() / 1000)
     });
@@ -160,6 +161,7 @@ export async function GET(request: NextRequest) {
       images: product.images,
       metadata: product.metadata,
       active: product.active,
+      checkout_url: `${request.headers.get('origin') || 'https://sbtcpay.org'}/checkout/product/${product.id}`,
       created: Math.floor(product.createdAt.getTime() / 1000),
       updated: Math.floor(product.updatedAt.getTime() / 1000)
     }));
