@@ -13,6 +13,7 @@ export function ProductList() {
   const [error, setError] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [copiedProductId, setCopiedProductId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -93,6 +94,17 @@ export function ProductList() {
     }
   };
 
+  const copyCheckoutLink = (productId: string) => {
+    const checkoutUrl = `${window.location.origin}/checkout/product/${productId}`;
+    navigator.clipboard.writeText(checkoutUrl);
+    setCopiedProductId(productId);
+    
+    // Reset the copied state after 2 seconds
+    setTimeout(() => {
+      setCopiedProductId(null);
+    }, 2000);
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -171,9 +183,12 @@ export function ProductList() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center">
-                          <h3 className="text-lg font-medium text-gray-900 truncate">
+                          <Link 
+                            href={`/dashboard/products/${product.id}`}
+                            className="text-lg font-medium text-blue-600 truncate hover:text-blue-800 hover:underline transition-colors"
+                          >
                             {product.name}
-                          </h3>
+                          </Link>
                           <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             product.active 
                               ? 'bg-green-100 text-green-800' 
@@ -222,6 +237,16 @@ export function ProductList() {
                           }`}
                         >
                           {product.active ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button
+                          onClick={() => copyCheckoutLink(product.id)}
+                          className={`px-3 py-1 text-sm rounded transition-all ${
+                            copiedProductId === product.id
+                              ? 'bg-green-50 text-green-600'
+                              : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+                          }`}
+                        >
+                          {copiedProductId === product.id ? '✓ Copied' : 'Copy Checkout Link'}
                         </button>
                         <button
                           onClick={() => handleDeleteProduct(product.id)}
