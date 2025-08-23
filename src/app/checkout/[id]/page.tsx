@@ -142,7 +142,6 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
         throw new Error(errorData.error?.message || 'Payment intent not found');
       }
 
-      debugger;
       const data = await response.json();
       setPaymentIntent(data);
       setLoading(false);
