@@ -201,7 +201,7 @@ export function PaymentStatus({ status, paymentIntentId, txId, merchantRedirectU
                       <span className="hidden sm:inline">{txId}</span>
                     </div>
                     <a 
-                      href={`https://explorer.stacks.co/txid/${txId}?chain=testnet`}
+                      href={`https://explorer.stacks.co/txid/0x${txId}?chain=testnet`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center mt-3 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
