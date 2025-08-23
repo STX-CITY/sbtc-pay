@@ -8,6 +8,7 @@ export function ApiReference() {
   const [endpointResponses, setEndpointResponses] = useState<{[key: string]: any}>({});
   const [endpointErrors, setEndpointErrors] = useState<{[key: string]: string}>({});
   const [copiedResponse, setCopiedResponse] = useState<string | null>(null);
+  const [pathParams, setPathParams] = useState<{[key: string]: string}>({});
 
   const copyToClipboard = async (text: string, endpointKey: string) => {
     try {
@@ -23,8 +24,36 @@ export function ApiReference() {
     }
   };
 
+  const getPathParams = (endpoint: string): string[] => {
+    const matches = endpoint.match(/\{([^}]+)\}/g);
+    return matches ? matches.map(match => match.slice(1, -1)) : [];
+  };
+
+  const buildEndpointUrl = (endpoint: string, endpointKey: string): string => {
+    let url = endpoint;
+    const params = getPathParams(endpoint);
+    
+    params.forEach(param => {
+      const value = pathParams[`${endpointKey}-${param}`] || `{${param}}`;
+      url = url.replace(`{${param}}`, value);
+    });
+    
+    return url;
+  };
+
   const testApiEndpoint = async (endpoint: string, method: string, sampleData?: any) => {
     const endpointKey = `${method} ${endpoint}`;
+    const actualEndpoint = buildEndpointUrl(endpoint, endpointKey);
+    
+    // Check if endpoint still has unfilled parameters
+    if (actualEndpoint.includes('{') && actualEndpoint.includes('}')) {
+      setEndpointErrors(prev => ({ 
+        ...prev, 
+        [endpointKey]: 'Please fill in all required path parameters' 
+      }));
+      return;
+    }
+    
     setTestingApi(endpointKey);
     setEndpointErrors(prev => ({ ...prev, [endpointKey]: '' }));
 
@@ -50,7 +79,7 @@ export function ApiReference() {
         options.body = JSON.stringify(sampleData);
       }
 
-      const response = await fetch(`/api/v1${endpoint}`, options);
+      const response = await fetch(`/api/v1${actualEndpoint}`, options);
       const data = await response.json();
 
       if (!response.ok) {
@@ -99,13 +128,13 @@ export function ApiReference() {
       method: 'GET',
       endpoint: '/products/{id}',
       title: 'Retrieve Product',
-      description: 'Get details of a specific product'
+      description: 'Get details of a specific product by its ID'
     },
     {
       method: 'POST',
       endpoint: '/products/{id}',
       title: 'Update Product',
-      description: 'Update an existing product',
+      description: 'Update an existing product by its ID',
       sampleData: {
         name: "Updated Premium Plan",
         price_usd: 39.99,
@@ -116,7 +145,7 @@ export function ApiReference() {
       method: 'DELETE',
       endpoint: '/products/{id}',
       title: 'Delete Product',
-      description: 'Permanently delete a product'
+      description: 'Permanently delete a product by its ID'
     },
     {
       method: 'POST',
@@ -143,7 +172,7 @@ export function ApiReference() {
       method: 'GET',
       endpoint: '/payment_intents/{id}',
       title: 'Retrieve Payment Intent',
-      description: 'Get details of a specific payment intent'
+      description: 'Get details of a specific payment intent by its ID'
     },
     {
       method: 'GET',
@@ -154,6 +183,12 @@ export function ApiReference() {
         { name: 'limit', description: 'Number of customers to return (max 100)', example: '10' },
         { name: 'offset', description: 'Number of customers to skip', example: '0' }
       ]
+    },
+    {
+      method: 'GET',
+      endpoint: '/customers/{identifier}',
+      title: 'Retrieve Customer',
+      description: 'Get detailed information about a specific customer by address or email, including all transactions and purchased products'
     }
   ];
 
@@ -233,6 +268,45 @@ export function ApiReference() {
                 
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{api.title}</h3>
                 <p className="text-gray-600 mb-4">{api.description}</p>
+                
+                {getPathParams(api.endpoint).length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Path Parameters:</h4>
+                    <div className="space-y-3">
+                      {getPathParams(api.endpoint).map((param, paramIndex) => (
+                        <div key={paramIndex} className="flex items-start space-x-2">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{param}</code>
+                              <span className="text-xs text-red-500">required</span>
+                            </div>
+                            <input
+                              type="text"
+                              placeholder={
+                                param === 'identifier' ? 'ST123... or customer@example.com' :
+                                param === 'id' && api.endpoint.includes('products') ? 'prod_1234567890' :
+                                param === 'id' && api.endpoint.includes('payment_intents') ? 'pi_1234567890' :
+                                param === 'id' ? 'Enter ID' :
+                                `Enter ${param}`
+                              }
+                              value={pathParams[`${endpointKey}-${param}`] || ''}
+                              onChange={(e) => setPathParams(prev => ({
+                                ...prev,
+                                [`${endpointKey}-${param}`]: e.target.value
+                              }))}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            {param === 'identifier' && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Can be either a Stacks address (ST123...) or email address
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {api.queryParams && (
                   <div className="mb-4">
