@@ -9,8 +9,211 @@ export default function DocsPage() {
   const [activeFlow, setActiveFlow] = useState('merchant');
 
   const codeSnippets = {
-    createProduct: `// Create a product
-const product = await fetch('/api/v1/products', {
+    nextjsSetup: `// pages/api/products/create.js
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const response = await fetch('https://sbtcpay.org/api/v1/products', {
+    method: 'POST',
+    headers: {
+      'Authorization': \`Bearer \${process.env.SBTC_API_KEY}\`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name: req.body.name,
+      description: req.body.description,
+      price_usd: req.body.price,
+      images: req.body.images
+    })
+  });
+
+  const product = await response.json();
+  res.status(200).json(product);
+}`,
+
+    nextjsCheckout: `// pages/checkout/[productId].js
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+
+export default function CheckoutPage({ product }) {
+  const [loading, setLoading] = useState(false);
+  const [paymentIntent, setPaymentIntent] = useState(null);
+  const router = useRouter();
+
+  const createPaymentIntent = async () => {
+    setLoading(true);
+    
+    const response = await fetch('/api/payment/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product_id: product.id,
+        amount: product.price_usd * 100, // Convert to cents
+        customer_email: document.getElementById('email').value
+      })
+    });
+
+    const intent = await response.json();
+    setPaymentIntent(intent);
+    
+    // Redirect to sBTC Pay hosted checkout
+    window.location.href = \`https://sbtcpay.org/checkout/\${intent.id}\`;
+  };
+
+  return (
+    <div className="max-w-md mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">{product.name}</h1>
+      <p className="text-gray-600 mb-4">{product.description}</p>
+      <p className="text-3xl font-bold mb-6">\${product.price_usd}</p>
+      
+      <input
+        id="email"
+        type="email"
+        placeholder="Your email"
+        className="w-full p-2 border rounded mb-4"
+        required
+      />
+      
+      <button
+        onClick={createPaymentIntent}
+        disabled={loading}
+        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+      >
+        {loading ? 'Processing...' : 'Pay with Bitcoin'}
+      </button>
+    </div>
+  );
+}
+
+export async function getServerSideProps({ params }) {
+  const response = await fetch(\`https://sbtcpay.org/api/v1/products/\${params.productId}\`, {
+    headers: {
+      'Authorization': \`Bearer \${process.env.SBTC_API_KEY}\`
+    }
+  });
+  
+  const product = await response.json();
+  
+  return {
+    props: { product }
+  };
+}`,
+
+    nextjsWebhook: `// pages/api/webhooks/sbtc.js
+import crypto from 'crypto';
+
+function verifySignature(payload, signature, secret) {
+  const [timestamp, hash] = signature.split(',').map(part => part.split('=')[1]);
+  const expectedHash = crypto
+    .createHmac('sha256', secret)
+    .update(\`\${timestamp}.\${payload}\`)
+    .digest('hex');
+  
+  return hash === expectedHash;
+}
+
+export default async function handler(req, res) {
+  const signature = req.headers['x-sbtc-signature'];
+  const payload = JSON.stringify(req.body);
+  
+  // Verify webhook signature
+  if (!verifySignature(payload, signature, process.env.SBTC_WEBHOOK_SECRET)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+  
+  const event = req.body;
+  
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      // Payment successful - fulfill order
+      await fulfillOrder(event.data.object);
+      break;
+      
+    case 'payment_intent.failed':
+      // Payment failed - notify customer
+      await notifyFailedPayment(event.data.object);
+      break;
+      
+    case 'payment_intent.created':
+      // Payment intent created - log for analytics
+      console.log('New payment intent:', event.data.object.id);
+      break;
+  }
+  
+  res.status(200).json({ received: true });
+}
+
+async function fulfillOrder(paymentIntent) {
+  // Update your database
+  await db.orders.update({
+    where: { payment_intent_id: paymentIntent.id },
+    data: { 
+      status: 'paid',
+      paid_at: new Date()
+    }
+  });
+  
+  // Send confirmation email
+  await sendEmail({
+    to: paymentIntent.customer_email,
+    subject: 'Payment Confirmed',
+    template: 'payment-success',
+    data: { amount: paymentIntent.amount / 100 }
+  });
+}`,
+
+    storeExample: `// Complete Next.js Store Example
+
+// 1. Environment Variables (.env.local)
+SBTC_API_KEY=sk_live_your_api_key_here
+SBTC_WEBHOOK_SECRET=whsec_your_webhook_secret
+NEXT_PUBLIC_SBTC_BASE_URL=https://sbtcpay.org
+
+// 2. Product Listing Page (pages/products.js)
+export default function ProductsPage({ products }) {
+  return (
+    <div className="grid md:grid-cols-3 gap-6 p-6">
+      {products.map(product => (
+        <div key={product.id} className="border rounded-lg p-4">
+          <img src={product.images[0]} alt={product.name} className="w-full h-48 object-cover rounded" />
+          <h3 className="text-lg font-semibold mt-2">{product.name}</h3>
+          <p className="text-gray-600">{product.description}</p>
+          <p className="text-2xl font-bold mt-2">\${product.price_usd}</p>
+          <a href={\`/checkout/\${product.id}\`} className="block mt-4 bg-blue-600 text-white text-center py-2 rounded">
+            Buy Now
+          </a>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 3. API Route for Payment Creation (pages/api/payment/create.js)
+export default async function handler(req, res) {
+  const { product_id, customer_email } = req.body;
+  
+  const response = await fetch('https://sbtcpay.org/api/v1/payment_intents', {
+    method: 'POST',
+    headers: {
+      'Authorization': \`Bearer \${process.env.SBTC_API_KEY}\`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      product_id,
+      customer_email,
+      success_url: \`\${process.env.NEXT_PUBLIC_BASE_URL}/success\`,
+      cancel_url: \`\${process.env.NEXT_PUBLIC_BASE_URL}/products\`
+    })
+  });
+  
+  const paymentIntent = await response.json();
+  res.status(200).json(paymentIntent);
+}`,
+    
+    createProduct: `// Create a product via API
+const response = await fetch('https://sbtcpay.org/api/v1/products', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer sk_live_...',
@@ -22,10 +225,13 @@ const product = await fetch('/api/v1/products', {
     price_usd: 29.99,
     images: ['https://example.com/image.jpg']
   })
-});`,
+});
+
+const product = await response.json();
+console.log('Product created:', product.id);`,
     
     createPaymentIntent: `// Create payment intent
-const paymentIntent = await fetch('/api/v1/payment_intents', {
+const response = await fetch('https://sbtcpay.org/api/v1/payment_intents', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer sk_live_...',
@@ -37,29 +243,15 @@ const paymentIntent = await fetch('/api/v1/payment_intents', {
     product_id: 'prod_123',
     customer_email: 'user@example.com'
   })
-});`,
+});
 
-    checkoutForm: `// Frontend checkout integration
-import { SBTCPayCheckout } from '@sbtc-pay/react';
-
-function CheckoutPage() {
-  return (
-    <SBTCPayCheckout
-      paymentIntentId="pi_123"
-      onSuccess={(payment) => {
-        console.log('Payment succeeded:', payment.id);
-        window.location.href = '/success';
-      }}
-      onError={(error) => {
-        console.error('Payment failed:', error);
-      }}
-    />
-  );
-}`,
+const paymentIntent = await response.json();
+// Redirect to hosted checkout
+window.location.href = \`https://sbtcpay.org/checkout/\${paymentIntent.id}\`;`,
 
     webhook: `// Handle webhook events
-app.post('/webhooks/sbtc', (req, res) => {
-  const signature = req.get('x-sbtc-signature');
+app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) => {
+  const signature = req.headers['x-sbtc-signature'];
   const payload = req.body.toString();
   
   if (!verifySignature(payload, signature, secret)) {
@@ -96,19 +288,19 @@ app.post('/webhooks/sbtc', (req, res) => {
               Complete guide to integrating Bitcoin payments with sBTC Pay
             </p>
             <div className="flex justify-center gap-4">
-              <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+              <a href="/register" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                 Get Started
-              </button>
-              <button className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
+              </a>
+              <a href="#examples" className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
                 View Examples
-              </button>
+              </a>
             </div>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div className="bg-white shadow-sm border-b sticky top-9 z-10">
         <div className="max-w-6xl mx-auto px-4">
           <nav className="flex space-x-8">
             {[
@@ -188,7 +380,11 @@ app.post('/webhooks/sbtc', (req, res) => {
                   <ul className="space-y-3">
                     <li className="flex items-center space-x-2">
                       <span className="w-2 h-2 bg-white rounded-full"></span>
-                      <span>Multiple payment methods</span>
+                      <span>Dashboard for merchants</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="w-2 h-2 bg-white rounded-full"></span>
+                      <span>RESTful API</span>
                     </li>
                     <li className="flex items-center space-x-2">
                       <span className="w-2 h-2 bg-white rounded-full"></span>
@@ -196,15 +392,11 @@ app.post('/webhooks/sbtc', (req, res) => {
                     </li>
                     <li className="flex items-center space-x-2">
                       <span className="w-2 h-2 bg-white rounded-full"></span>
-                      <span>Dashboard analytics</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <span className="w-2 h-2 bg-white rounded-full"></span>
                       <span>Product management</span>
                     </li>
                     <li className="flex items-center space-x-2">
                       <span className="w-2 h-2 bg-white rounded-full"></span>
-                      <span>Manual payments</span>
+                      <span>Hosted checkout pages</span>
                     </li>
                   </ul>
                 </div>
@@ -291,25 +483,10 @@ app.post('/webhooks/sbtc', (req, res) => {
             </div>
 
             <div className="bg-gray-900 rounded-xl p-6">
-              <h3 className="text-white text-lg font-semibold mb-4">🚀 Install SDK</h3>
-              <div className="bg-black rounded p-4 mb-4">
-                <code className="text-green-400">npm install @sbtc-pay/js @sbtc-pay/react</code>
-              </div>
-              <div className="bg-gray-800 rounded p-4">
+              <h3 className="text-white text-lg font-semibold mb-4">🚀 Next.js Store Setup</h3>
+              <div className="bg-black rounded p-4">
                 <pre className="text-gray-300 text-sm overflow-x-auto">
-{`import { SBTCPay } from '@sbtc-pay/js';
-
-const sbtcPay = new SBTCPay({
-  apiKey: 'sk_live_...',
-  environment: 'production' // or 'sandbox'
-});
-
-// Create a payment intent
-const paymentIntent = await sbtcPay.paymentIntents.create({
-  amount: 2999, // $29.99
-  currency: 'usd',
-  customer_email: 'user@example.com'
-});`}
+{codeSnippets.storeExample}
                 </pre>
               </div>
             </div>
@@ -370,8 +547,8 @@ const paymentIntent = await sbtcPay.paymentIntents.create({
                       {
                         step: 3,
                         title: "Checkout Integration",
-                        description: "Show checkout form to customer",
-                        code: codeSnippets.checkoutForm,
+                        description: "Redirect customer to hosted checkout page",
+                        code: codeSnippets.nextjsCheckout,
                         icon: "🛒"
                       },
                       {
@@ -495,7 +672,7 @@ const paymentIntent = await sbtcPay.paymentIntents.create({
                 <div className="bg-white rounded-lg shadow-sm border p-6">
                   <h3 className="text-lg font-semibold mb-3 text-gray-900">Base URL</h3>
                   <div className="bg-gray-100 rounded p-3">
-                    <code className="text-sm">https://sbtcpay.org/v1</code>
+                    <code className="text-sm">https://sbtcpay.org/api/v1</code>
                   </div>
                 </div>
                 
@@ -521,11 +698,11 @@ const paymentIntent = await sbtcPay.paymentIntents.create({
                   </div>
                   <div className="flex justify-between">
                     <span>Webhooks</span>
-                    <span className="bg-white bg-opacity-20 px-2 py-1 rounded">/webhook-endpoints</span>
+                    <span className="bg-white bg-opacity-20 px-2 py-1 rounded">/webhook_endpoints</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Dashboard</span>
-                    <span className="bg-white bg-opacity-20 px-2 py-1 rounded">/dashboard/stats</span>
+                    <span>Merchants</span>
+                    <span className="bg-white bg-opacity-20 px-2 py-1 rounded">/merchants</span>
                   </div>
                 </div>
               </div>
@@ -574,13 +751,49 @@ const paymentIntent = await sbtcPay.paymentIntents.create({
   "memo": "pi_123"
 }`
                   }
+                },
+                {
+                  method: 'GET',
+                  endpoint: '/products/:id',
+                  title: 'Get Product',
+                  description: 'Retrieve a single product by ID',
+                  example: {
+                    request: `// GET /products/prod_123`,
+                    response: `{
+  "id": "prod_123",
+  "name": "Premium Plan",
+  "description": "Monthly subscription",
+  "price_usd": 29.99,
+  "active": true
+}`
+                  }
+                },
+                {
+                  method: 'POST',
+                  endpoint: '/webhook_endpoints',
+                  title: 'Create Webhook Endpoint',
+                  description: 'Register a webhook endpoint',
+                  example: {
+                    request: `{
+  "url": "https://yoursite.com/webhooks",
+  "events": ["payment_intent.succeeded", "payment_intent.failed"]
+}`,
+                    response: `{
+  "id": "we_123",
+  "url": "https://yoursite.com/webhooks",
+  "secret": "whsec_...",
+  "active": true
+}`
+                  }
                 }
               ].map((api, index) => (
                 <div key={index} className="bg-white rounded-lg shadow-sm border overflow-hidden">
                   <div className="bg-gray-50 px-6 py-4 border-b">
                     <div className="flex items-center space-x-3">
                       <span className={`px-2 py-1 text-xs font-medium rounded ${
-                        api.method === 'POST' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+                        api.method === 'POST' ? 'bg-green-100 text-green-600' : 
+                        api.method === 'GET' ? 'bg-blue-100 text-blue-600' : 
+                        'bg-gray-100 text-gray-600'
                       }`}>
                         {api.method}
                       </span>
@@ -636,6 +849,7 @@ const paymentIntent = await sbtcPay.paymentIntents.create({
                   { event: 'payment_intent.created', desc: 'Payment intent created' },
                   { event: 'payment_intent.succeeded', desc: 'Payment completed successfully' },
                   { event: 'payment_intent.failed', desc: 'Payment failed' },
+                  { event: 'payment_intent.expired', desc: 'Payment intent expired' },
                   { event: 'product.created', desc: 'New product created' },
                   { event: 'product.updated', desc: 'Product information updated' }
                 ].map((item, index) => (
@@ -665,7 +879,7 @@ const paymentIntent = await sbtcPay.paymentIntents.create({
                   </div>
                   <div className="flex items-center space-x-3">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span className="text-sm">Automatic retries</span>
+                    <span className="text-sm">Automatic retries with exponential backoff</span>
                   </div>
                 </div>
                 
@@ -679,33 +893,10 @@ const paymentIntent = await sbtcPay.paymentIntents.create({
             </div>
 
             <div className="bg-gray-900 rounded-xl p-6">
-              <h3 className="text-white text-lg font-semibold mb-4">Example Webhook Handler</h3>
+              <h3 className="text-white text-lg font-semibold mb-4">Next.js Webhook Handler</h3>
               <div className="bg-black rounded p-4">
                 <pre className="text-gray-300 text-sm overflow-x-auto">
-{`app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) => {
-  const payload = req.body.toString();
-  const signature = req.get('x-sbtc-signature');
-  const secret = process.env.SBTC_WEBHOOK_SECRET;
-  
-  if (!verifySignature(payload, signature, secret)) {
-    return res.status(401).send('Unauthorized');
-  }
-  
-  const event = JSON.parse(payload);
-  
-  switch (event.type) {
-    case 'payment_intent.succeeded':
-      // Fulfill the order
-      await fulfillOrder(event.data.object);
-      break;
-    case 'payment_intent.failed':
-      // Handle failed payment
-      await handleFailedPayment(event.data.object);
-      break;
-  }
-  
-  res.status(200).send('OK');
-});`}
+{codeSnippets.nextjsWebhook}
                 </pre>
               </div>
             </div>
@@ -717,108 +908,99 @@ const paymentIntent = await sbtcPay.paymentIntents.create({
           <div className="space-y-8">
             <h2 className="text-3xl font-bold text-gray-900">Code Examples</h2>
             
+            <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">🛍️ Complete Next.js E-commerce Store</h3>
+              <p className="text-gray-700 mb-6">
+                A full example of integrating sBTC Pay into your Next.js store with products, checkout, and webhooks.
+              </p>
+              
+              <div className="space-y-6">
+                <div className="bg-white rounded-lg p-6 border">
+                  <h4 className="font-semibold mb-3">Step 1: Set up environment variables</h4>
+                  <div className="bg-gray-900 rounded p-4">
+                    <pre className="text-gray-300 text-sm overflow-x-auto">
+{`// .env.local
+SBTC_API_KEY=sk_live_your_api_key_here
+SBTC_WEBHOOK_SECRET=whsec_your_webhook_secret
+NEXT_PUBLIC_BASE_URL=https://yourstore.com`}
+                    </pre>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-6 border">
+                  <h4 className="font-semibold mb-3">Step 2: Create product API route</h4>
+                  <div className="bg-gray-900 rounded p-4">
+                    <pre className="text-gray-300 text-sm overflow-x-auto">
+{codeSnippets.nextjsSetup}
+                    </pre>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-6 border">
+                  <h4 className="font-semibold mb-3">Step 3: Implement checkout page</h4>
+                  <div className="bg-gray-900 rounded p-4">
+                    <pre className="text-gray-300 text-sm overflow-x-auto">
+{codeSnippets.nextjsCheckout}
+                    </pre>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-6 border">
+                  <h4 className="font-semibold mb-3">Step 4: Handle webhooks</h4>
+                  <div className="bg-gray-900 rounded p-4">
+                    <pre className="text-gray-300 text-sm overflow-x-auto">
+{codeSnippets.nextjsWebhook}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h3 className="text-lg font-semibold mb-4">🛒 E-commerce Integration</h3>
-                <p className="text-gray-600 mb-4">Complete checkout flow for an online store</p>
-                <div className="bg-gray-900 rounded p-4 mb-4">
-                  <pre className="text-gray-300 text-xs overflow-x-auto">
-{`// 1. Create product
-const product = await sbtcPay.products.create({
-  name: 'Cool T-Shirt',
-  price_usd: 25.00,
-  images: ['https://shop.com/tshirt.jpg']
-});
-
-// 2. Create payment intent
-const paymentIntent = await sbtcPay.paymentIntents.create({
-  amount: 2500, // $25.00
-  product_id: product.id,
-  customer_email: 'customer@example.com'
-});
-
-// 3. Show checkout
-window.location.href = \`/checkout/\${paymentIntent.id}\`;`}
-                  </pre>
-                </div>
-                <a href="#" className="text-blue-600 text-sm font-medium">View full example →</a>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-sm border p-6">
                 <h3 className="text-lg font-semibold mb-4">📱 Subscription Service</h3>
-                <p className="text-gray-600 mb-4">Monthly recurring payments setup</p>
+                <p className="text-gray-600 mb-4">Handle recurring payments for subscriptions</p>
                 <div className="bg-gray-900 rounded p-4 mb-4">
                   <pre className="text-gray-300 text-xs overflow-x-auto">
 {`// Create subscription product
-const subscription = await sbtcPay.products.create({
-  name: 'Premium Monthly',
-  price_usd: 9.99,
-  type: 'subscription',
-  metadata: { interval: 'month' }
+const response = await fetch('/api/products/create', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Premium Monthly',
+    price: 9.99,
+    description: 'Monthly subscription',
+    metadata: { type: 'subscription' }
+  })
 });
 
-// Handle subscription webhook
-app.post('/webhooks', (req, res) => {
-  const event = JSON.parse(req.body);
-  
-  if (event.type === 'payment_intent.succeeded') {
-    // Activate user's subscription
-    await activateSubscription(event.data.object);
-  }
-});`}
+// Handle recurring payments
+// Set up a cron job to create payment intents monthly`}
                   </pre>
                 </div>
-                <a href="#" className="text-blue-600 text-sm font-medium">View full example →</a>
               </div>
               
               <div className="bg-white rounded-lg shadow-sm border p-6">
                 <h3 className="text-lg font-semibold mb-4">🎫 Event Tickets</h3>
-                <p className="text-gray-600 mb-4">Sell event tickets with Bitcoin payments</p>
+                <p className="text-gray-600 mb-4">Sell tickets with QR codes</p>
                 <div className="bg-gray-900 rounded p-4 mb-4">
                   <pre className="text-gray-300 text-xs overflow-x-auto">
-{`// Create ticket product
-const ticket = await sbtcPay.products.create({
-  name: 'Concert Ticket',
-  price_usd: 75.00,
-  metadata: { 
-    event_date: '2024-12-31',
-    venue: 'Music Hall'
-  }
-});
-
-// Generate unique ticket on payment
+{`// Generate ticket after payment
 webhook.on('payment_intent.succeeded', async (payment) => {
-  const ticketCode = generateTicketCode();
-  await sendTicketEmail(payment.customer_email, ticketCode);
+  const ticket = await generateTicket({
+    event: 'Concert 2024',
+    customer: payment.customer_email,
+    seat: assignSeat()
+  });
+  
+  await sendEmail({
+    to: payment.customer_email,
+    subject: 'Your Ticket',
+    attachments: [ticket.pdf]
+  });
 });`}
                   </pre>
                 </div>
-                <a href="#" className="text-blue-600 text-sm font-medium">View full example →</a>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h3 className="text-lg font-semibold mb-4">💝 Digital Downloads</h3>
-                <p className="text-gray-600 mb-4">Sell digital products and files</p>
-                <div className="bg-gray-900 rounded p-4 mb-4">
-                  <pre className="text-gray-300 text-xs overflow-x-auto">
-{`// Create digital product
-const ebook = await sbtcPay.products.create({
-  name: 'Bitcoin Guide eBook',
-  price_usd: 19.99,
-  metadata: { 
-    type: 'digital',
-    download_url: 'https://files.com/ebook.pdf'
-  }
-});
-
-// Provide download link after payment
-webhook.on('payment_intent.succeeded', (payment) => {
-  const downloadLink = generateSecureLink(payment.product.metadata.download_url);
-  sendDownloadEmail(payment.customer_email, downloadLink);
-});`}
-                  </pre>
-                </div>
-                <a href="#" className="text-blue-600 text-sm font-medium">View full example →</a>
               </div>
             </div>
 
@@ -828,12 +1010,12 @@ webhook.on('payment_intent.succeeded', (payment) => {
                 Join thousands of merchants already accepting Bitcoin payments with sBTC Pay
               </p>
               <div className="flex justify-center gap-4">
-                <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                <a href="/register" className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
                   Create Account
-                </button>
-                <button className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                </a>
+                <a href="/checkout/product/prod_dJ5wruTLdgEYUFt3" className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
                   View Live Demo
-                </button>
+                </a>
               </div>
             </div>
           </div>
