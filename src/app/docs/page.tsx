@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { InteractiveDemo } from '@/components/docs/interactive-demo';
 import { PaymentComparison } from '@/components/docs/payment-comparison';
 import { ApiReference } from '@/components/docs/api-reference';
@@ -8,6 +8,28 @@ import { ApiReference } from '@/components/docs/api-reference';
 export default function DocsPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [activeFlow, setActiveFlow] = useState('merchant');
+
+  // Handle hash navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1); // Remove the #
+      if (hash === 'api') {
+        setActiveTab('api');
+      } else if (['overview', 'quickstart', 'flows', 'webhooks', 'examples'].includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+
+    // Check initial hash
+    handleHashChange();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
 
   const codeSnippets = {
     nextjsSetup: `// pages/api/products/create.js

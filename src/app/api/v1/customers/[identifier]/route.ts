@@ -5,7 +5,7 @@ import { eq, and, or, isNotNull } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { identifier: string } }
+  { params }: { params: Promise<{ identifier: string }> }
 ) {
   try {
     const auth = await authenticateRequest(request);
@@ -16,7 +16,7 @@ export async function GET(
       );
     }
 
-    const { identifier } = params;
+    const { identifier } = await params;
     
     if (!identifier) {
       return NextResponse.json(
@@ -116,8 +116,18 @@ export async function GET(
     }));
 
     // Get unique products purchased
-    const uniqueProducts = [];
-    const productIds = new Set();
+    const uniqueProducts: Array<{
+      id: string;
+      name: string | null;
+      description: string | null;
+      type: string | null;
+      images: any;
+      metadata: any;
+      purchase_count: number;
+      first_purchased: number;
+      last_purchased: number;
+    }> = [];
+    const productIds = new Set<string>();
     
     successfulPayments.forEach(payment => {
       if (payment.productId && !productIds.has(payment.productId)) {

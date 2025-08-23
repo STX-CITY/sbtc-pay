@@ -194,7 +194,64 @@ export function ApiReference() {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-gray-900">API Reference</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-gray-900">API Reference</h2>
+        <button
+          onClick={() => setShowDemo(!showDemo)}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+            showDemo 
+              ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg' 
+              : 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 shadow-md hover:shadow-lg'
+          }`}
+        >
+          {showDemo ? '✨ Demo Active' : '🚀 Interactive API Demo'}
+        </button>
+      </div>
+
+      {showDemo && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-purple-200">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Interactive API Call Demo</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Test our API endpoints directly from this documentation. Enter your API key below and click "Try It" on any endpoint to see live responses.
+              </p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Quick Start:</h4>
+                  <ol className="text-xs text-gray-600 space-y-1">
+                    <li>1. Enter your API key in the field below</li>
+                    <li>2. Fill in any required parameters</li>
+                    <li>3. Click "Try It" to make a real API call</li>
+                    <li>4. View the response instantly</li>
+                  </ol>
+                </div>
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Features:</h4>
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    <li>• Real-time API responses</li>
+                    <li>• Copy response data with one click</li>
+                    <li>• Path parameter support</li>
+                    <li>• Error handling & validation</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-800">
+                  <strong>Note:</strong> Use test API keys for demo. Real API calls will affect your account data.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-4">
@@ -214,8 +271,20 @@ export function ApiReference() {
           </div>
         </div>
         
-        <div className="bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg p-6 text-white">
-          <h3 className="text-lg font-semibold mb-4">Test API Endpoints</h3>
+        <div className={`rounded-lg p-6 text-white transition-all ${
+          showDemo 
+            ? 'bg-gradient-to-br from-purple-600 to-blue-700 ring-4 ring-purple-300 ring-opacity-50 shadow-xl' 
+            : 'bg-gradient-to-br from-purple-500 to-blue-600'
+        }`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Test API Endpoints</h3>
+            {showDemo && (
+              <span className="inline-flex items-center px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs font-medium">
+                <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
+                Demo Active
+              </span>
+            )}
+          </div>
           <div>
             <label className="block text-sm font-medium mb-2">Enter your API key to test endpoints:</label>
             <input
@@ -223,9 +292,17 @@ export function ApiReference() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="sk_test_your_api_key_here"
-              className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+              className={`w-full px-3 py-2 rounded border text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${
+                showDemo 
+                  ? 'bg-gray-900 border-purple-400 focus:ring-purple-400 focus:border-purple-400' 
+                  : 'bg-gray-800 border-gray-600 focus:ring-blue-400 focus:border-blue-400'
+              }`}
             />
-            <p className="text-purple-100 text-xs mt-2">Enter your API key above, then click "Try It" on any endpoint below to test it.</p>
+            <p className="text-purple-100 text-xs mt-2">
+              {showDemo 
+                ? '🎯 Demo mode active! Try making API calls using the "Try It" buttons below.' 
+                : 'Enter your API key above, then click "Try It" on any endpoint below to test it.'}
+            </p>
           </div>
         </div>
       </div>
