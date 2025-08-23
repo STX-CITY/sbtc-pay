@@ -7,6 +7,12 @@ import { PaymentComparison } from '@/components/docs/payment-comparison';
 export default function DocsPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [activeFlow, setActiveFlow] = useState('merchant');
+  
+  // API Testing state
+  const [apiKey, setApiKey] = useState('');
+  const [testingApi, setTestingApi] = useState<string | null>(null);
+  const [apiResponse, setApiResponse] = useState<any>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const codeSnippets = {
     nextjsSetup: `// pages/api/products/create.js
@@ -273,6 +279,71 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
   
   res.status(200).send('OK');
 });`
+  };
+
+  const testApiEndpoint = async (endpoint: string, method: string, sampleData?: any) => {
+    if (!apiKey) {
+      setApiError('Please enter your API key first');
+      return;
+    }
+    
+    setTestingApi(endpoint);
+    setApiResponse(null);
+    setApiError(null);
+    
+    try {
+      // Use the actual API base URL - adjust this to match your real API
+      const baseUrl = window.location.origin; // Use current domain
+      const url = `${baseUrl}/api/v1${endpoint}`;
+      
+      const options: RequestInit = {
+        method,
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        }
+      };
+      
+      if (sampleData && (method === 'POST' || method === 'PUT')) {
+        options.body = JSON.stringify(sampleData);
+      }
+      
+      const response = await fetch(url, options);
+      
+      // Handle different content types
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { message: text || `HTTP ${response.status}` };
+      }
+      
+      // Set response data whether success or error - let users see real API responses
+      setApiResponse({
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        data: data
+      });
+      
+      // Only set error for network/parsing issues, not HTTP errors
+      if (!response.ok && data.error) {
+        setApiError(`${response.status}: ${data.error.message || data.message || response.statusText}`);
+      }
+      
+    } catch (error) {
+      // Network or parsing errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        setApiError('Network error: Could not connect to API. Make sure the server is running.');
+      } else {
+        setApiError(error instanceof Error ? error.message : 'Failed to call API');
+      }
+    } finally {
+      setTestingApi(null);
+    }
   };
 
   return (
@@ -680,30 +751,46 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
                   <h3 className="text-lg font-semibold mb-3 text-gray-900">Authentication</h3>
                   <p className="text-gray-600 mb-3">Include your API key in the Authorization header:</p>
                   <div className="bg-gray-900 rounded p-3">
-                    <code className="text-green-400 text-sm">Authorization: Bearer sk_live_...</code>
+                    <code className="text-green-400 text-sm">Authorization: Bearer sk_test_....</code>
                   </div>
                 </div>
               </div>
               
               <div className="bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg p-6 text-white">
-                <h3 className="text-lg font-semibold mb-4">API Endpoints</h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span>Products</span>
-                    <span className="bg-white bg-opacity-20 px-2 py-1 rounded">/products</span>
+                <h3 className="text-lg font-semibold mb-4">Test API Endpoints</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Enter your API key to test endpoints:</label>
+                    <input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="sk_test_your_api_key_here"
+                      className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
                   </div>
-                  <div className="flex justify-between">
-                    <span>Payment Intents</span>
-                    <span className="bg-white bg-opacity-20 px-2 py-1 rounded">/payment_intents</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Webhooks</span>
-                    <span className="bg-white bg-opacity-20 px-2 py-1 rounded">/webhook_endpoints</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Merchants</span>
-                    <span className="bg-white bg-opacity-20 px-2 py-1 rounded">/merchants</span>
-                  </div>
+                  
+                  {apiError && (
+                    <div className="bg-red-500 bg-opacity-30 border border-red-300 text-red-100 px-3 py-2 rounded text-sm">
+                      {apiError}
+                    </div>
+                  )}
+                  
+                  {apiResponse && (
+                    <div className={`${apiResponse.ok ? 'bg-green-500' : 'bg-orange-500'} bg-opacity-30 border ${apiResponse.ok ? 'border-green-300' : 'border-orange-300'} rounded p-3`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className={`${apiResponse.ok ? 'text-green-100' : 'text-orange-100'} font-medium text-sm`}>
+                          API Response:
+                        </h4>
+                        <span className={`text-xs px-2 py-1 rounded ${apiResponse.ok ? 'bg-green-400 text-green-900' : 'bg-orange-400 text-orange-900'}`}>
+                          {apiResponse.status} {apiResponse.statusText}
+                        </span>
+                      </div>
+                      <pre className={`${apiResponse.ok ? 'text-green-100' : 'text-orange-100'} text-xs overflow-x-auto`}>
+                        {JSON.stringify(apiResponse.data, null, 2)}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -715,6 +802,12 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
                   endpoint: '/products',
                   title: 'Create Product',
                   description: 'Create a new product for sale',
+                  sampleData: {
+                    name: "Premium Plan",
+                    description: "Monthly subscription",
+                    price_usd: 29.99,
+                    images: ["https://example.com/image.jpg"]
+                  },
                   example: {
                     request: `{
   "name": "Premium Plan",
@@ -732,10 +825,36 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
                   }
                 },
                 {
+                  method: 'GET',
+                  endpoint: '/products',
+                  title: 'List Products',
+                  description: 'Retrieve all your products',
+                  example: {
+                    request: `// GET /products?limit=10`,
+                    response: `{
+  "data": [
+    {
+      "id": "prod_123",
+      "name": "Premium Plan",
+      "price_usd": 29.99,
+      "active": true
+    }
+  ],
+  "has_more": false
+}`
+                  }
+                },
+                {
                   method: 'POST',
                   endpoint: '/payment_intents',
                   title: 'Create Payment Intent',
                   description: 'Create a payment intent for checkout',
+                  sampleData: {
+                    amount: 2999,
+                    currency: "usd",
+                    product_id: "prod_123",
+                    customer_email: "user@example.com"
+                  },
                   example: {
                     request: `{
   "amount": 2999,
@@ -753,26 +872,14 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
                   }
                 },
                 {
-                  method: 'GET',
-                  endpoint: '/products/:id',
-                  title: 'Get Product',
-                  description: 'Retrieve a single product by ID',
-                  example: {
-                    request: `// GET /products/prod_123`,
-                    response: `{
-  "id": "prod_123",
-  "name": "Premium Plan",
-  "description": "Monthly subscription",
-  "price_usd": 29.99,
-  "active": true
-}`
-                  }
-                },
-                {
                   method: 'POST',
                   endpoint: '/webhook_endpoints',
                   title: 'Create Webhook Endpoint',
                   description: 'Register a webhook endpoint',
+                  sampleData: {
+                    url: "https://yoursite.com/webhooks",
+                    events: ["payment_intent.succeeded", "payment_intent.failed"]
+                  },
                   example: {
                     request: `{
   "url": "https://yoursite.com/webhooks",
@@ -789,18 +896,37 @@ app.post('/webhooks/sbtc', express.raw({type: 'application/json'}), (req, res) =
               ].map((api, index) => (
                 <div key={index} className="bg-white rounded-lg shadow-sm border overflow-hidden">
                   <div className="bg-gray-50 px-6 py-4 border-b">
-                    <div className="flex items-center space-x-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded ${
-                        api.method === 'POST' ? 'bg-green-100 text-green-600' : 
-                        api.method === 'GET' ? 'bg-blue-100 text-blue-600' : 
-                        'bg-gray-100 text-gray-600'
-                      }`}>
-                        {api.method}
-                      </span>
-                      <code className="text-sm">{api.endpoint}</code>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${
+                          api.method === 'POST' ? 'bg-green-100 text-green-600' : 
+                          api.method === 'GET' ? 'bg-blue-100 text-blue-600' : 
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {api.method}
+                        </span>
+                        <code className="text-sm">{api.endpoint}</code>
+                      </div>
+                      
+                      {/* Try It Button */}
+                      <button
+                        onClick={() => testApiEndpoint(api.endpoint, api.method, api.sampleData)}
+                        disabled={testingApi === api.endpoint || !apiKey}
+                        className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                          testingApi === api.endpoint 
+                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                            : apiKey
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {testingApi === api.endpoint ? 'Testing...' : 'Try It'}
+                      </button>
                     </div>
-                    <h3 className="font-semibold mt-2">{api.title}</h3>
-                    <p className="text-gray-600 text-sm">{api.description}</p>
+                    <div className="mt-2">
+                      <h3 className="font-semibold">{api.title}</h3>
+                      <p className="text-gray-600 text-sm">{api.description}</p>
+                    </div>
                   </div>
                   <div className="p-6">
                     <div className="grid md:grid-cols-2 gap-4">
