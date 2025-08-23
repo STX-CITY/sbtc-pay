@@ -9,6 +9,7 @@ const updateProfileSchema = z.object({
   email: z.string().email().optional(),
   recipientAddress: z.string().min(1).max(255).optional(),
   webhookUrl: z.string().url().optional().or(z.literal('')),
+  checkoutRedirectUrl: z.string().url().optional().or(z.literal('')),
 });
 
 export async function GET(request: NextRequest) {
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
       stacksAddress: merchant.stacksAddress,
       recipientAddress: merchant.recipientAddress || merchant.stacksAddress, // Fallback to stacksAddress
       webhookUrl: merchant.webhookUrl,
+      checkoutRedirectUrl: merchant.checkoutRedirectUrl,
       apiKeyTest: merchant.apiKeyTest,
       // Don't return live API key for security
       created: Math.floor(merchant.createdAt.getTime() / 1000)
@@ -82,6 +84,9 @@ export async function POST(request: NextRequest) {
     if (validatedData.webhookUrl !== undefined) {
       updateData.webhookUrl = validatedData.webhookUrl || null;
     }
+    if (validatedData.checkoutRedirectUrl !== undefined) {
+      updateData.checkoutRedirectUrl = validatedData.checkoutRedirectUrl || null;
+    }
 
     const [updatedMerchant] = await db
       .update(merchants)
@@ -96,6 +101,7 @@ export async function POST(request: NextRequest) {
       stacksAddress: updatedMerchant.stacksAddress,
       recipientAddress: updatedMerchant.recipientAddress || updatedMerchant.stacksAddress, // Fallback to stacksAddress
       webhookUrl: updatedMerchant.webhookUrl,
+      checkoutRedirectUrl: updatedMerchant.checkoutRedirectUrl,
       apiKeyTest: updatedMerchant.apiKeyTest,
       created: Math.floor(updatedMerchant.createdAt.getTime() / 1000),
       message: 'Profile updated successfully'

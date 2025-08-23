@@ -6,9 +6,11 @@ interface PaymentStatusProps {
   status: 'success' | 'failed' | 'pending';
   paymentIntentId: string;
   txId?: string;
+  merchantRedirectUrl?: string;
+  merchantName?: string;
 }
 
-export function PaymentStatus({ status, paymentIntentId, txId }: PaymentStatusProps) {
+export function PaymentStatus({ status, paymentIntentId, txId, merchantRedirectUrl, merchantName }: PaymentStatusProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   
   const copyToClipboard = async (text: string, field: string) => {
@@ -234,18 +236,46 @@ export function PaymentStatus({ status, paymentIntentId, txId }: PaymentStatusPr
           <div className="px-8 py-6 sm:px-12 bg-white border-t border-gray-100">
             {status === 'success' && (
               <div className="space-y-3">
-                <button 
-                  onClick={() => window.location.href = '/'}
-                  className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
-                >
-                  Return to Merchant
-                </button>
-                <button 
-                  onClick={() => window.print()}
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200"
-                >
-                  Download Receipt
-                </button>
+                {merchantRedirectUrl ? (
+                  <>
+                    <button 
+                      onClick={() => window.location.href = merchantRedirectUrl}
+                      className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                    >
+                      {merchantName ? `Return to ${merchantName}` : 'Return to Merchant'}
+                    </button>
+                    <button 
+                      onClick={() => window.print()}
+                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200"
+                    >
+                      Download Receipt
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-blue-800">Payment Complete!</h3>
+                          <p className="mt-1 text-sm text-blue-700">
+                            Your payment has been successfully processed. You can safely close this window.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => window.print()}
+                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 py-3.5 px-6 rounded-2xl font-semibold transition-all duration-200"
+                    >
+                      Download Receipt
+                    </button>
+                  </>
+                )}
               </div>
             )}
 

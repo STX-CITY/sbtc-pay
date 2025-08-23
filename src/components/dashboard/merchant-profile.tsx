@@ -202,6 +202,22 @@ export function MerchantProfile() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Checkout Redirect URL
+              </label>
+              <input
+                type="url"
+                value={editData.checkoutRedirectUrl}
+                onChange={(e) => setEditData(prev => ({ ...prev, checkoutRedirectUrl: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://yourdomain.com/success"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Redirect customers to your website after successful payment completion
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Stacks Address (Read-only)
               </label>
               <div className="flex gap-2">
