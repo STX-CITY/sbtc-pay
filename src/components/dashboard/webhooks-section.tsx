@@ -9,6 +9,7 @@ interface WebhookEndpoint {
   description?: string;
   events: string[];
   active: boolean;
+  secret?: string;
   created: number;
   updated: number;
 }
@@ -33,6 +34,7 @@ export function WebhooksSection() {
   const [newWebhookDescription, setNewWebhookDescription] = useState('');
   const [selectedEvents, setSelectedEvents] = useState<string[]>(['payment_intent.succeeded', 'payment_intent.failed']);
   const [submitting, setSubmitting] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState<string | null>(null);
 
   useEffect(() => {
     fetchWebhooks();
@@ -164,6 +166,16 @@ export function WebhooksSection() {
         ? prev.filter(e => e !== eventId)
         : [...prev, eventId]
     );
+  };
+
+  const copyToClipboard = async (text: string, webhookId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedSecret(webhookId);
+      setTimeout(() => setCopiedSecret(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   if (loading) {
@@ -309,7 +321,27 @@ export function WebhooksSection() {
                     Events: {webhook.events.join(', ')}
                   </p>
                   
-                  <p className="text-xs text-gray-500">
+                  {webhook.secret && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-600 mb-1">Webhook Secret:</p>
+                      <div className="flex items-center gap-2">
+                        <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+                          {webhook.secret}
+                        </code>
+                        <button
+                          onClick={() => copyToClipboard(webhook.secret!, webhook.id)}
+                          className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-gray-200"
+                        >
+                          {copiedSecret === webhook.id ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Use this secret to verify webhook signatures
+                      </p>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-gray-500 mt-2">
                     Created: {new Date(webhook.created * 1000).toLocaleString()}
                   </p>
                 </div>

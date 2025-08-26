@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       description: endpoint.description,
       events: JSON.parse(endpoint.events),
       active: endpoint.active,
+      secret: endpoint.secret,
       created: Math.floor(endpoint.createdAt.getTime() / 1000),
       updated: Math.floor(endpoint.updatedAt.getTime() / 1000)
     }));
