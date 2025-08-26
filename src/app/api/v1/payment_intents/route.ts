@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db, paymentIntents, products, merchants } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
 import { generatePaymentIntentId, formatPaymentIntentResponse, getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
+import { createWebhookEvent } from '@/lib/webhooks/sender';
 import { eq } from 'drizzle-orm';
 
 const createPaymentIntentSchema = z.object({
@@ -150,7 +151,11 @@ export async function POST(request: NextRequest) {
       .values(newPaymentIntent)
       .returning();
 
-    return NextResponse.json(formatPaymentIntentResponse(createdPaymentIntent));
+    // Send webhook event for payment_intent.created
+    const webhookData = formatPaymentIntentResponse(createdPaymentIntent);
+    await createWebhookEvent(merchantId, 'payment_intent.created', webhookData);
+
+    return NextResponse.json(webhookData);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

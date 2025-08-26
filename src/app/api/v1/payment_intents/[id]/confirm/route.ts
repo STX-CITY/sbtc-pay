@@ -69,9 +69,9 @@ export async function POST(
       .where(eq(paymentIntents.id, (await params).id))
       .returning();
 
-    // Create webhook event for status change
+    // Don't send webhook here since payment_intent.created is already sent on creation
+    // We'll send a webhook when the payment actually transitions to succeeded/failed
     const webhookData = formatPaymentIntentResponse(updatedPaymentIntent);
-    await createWebhookEvent(auth.merchantId, 'payment_intent.created', webhookData);
 
     // TODO: Here we would integrate with sBTC blockchain to initiate the transfer
     // For now, we'll just return the pending payment intent

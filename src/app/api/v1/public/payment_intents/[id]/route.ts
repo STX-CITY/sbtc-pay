@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, paymentIntents, merchants } from '@/lib/db';
 import { formatPaymentIntentResponse } from '@/lib/payments/utils';
+import { createWebhookEvent } from '@/lib/webhooks/sender';
 import { eq } from 'drizzle-orm';
 
 // Random headers to avoid rate limiting
@@ -103,6 +104,18 @@ export async function GET(
           if (updatedPaymentIntent) {
             effectiveStatus = hiroStatus;
             console.log(`Updated payment intent ${paymentIntentId} status from ${paymentIntent.status} to ${hiroStatus} via Hiro API`);
+            
+            // Send webhook event for status change
+            try {
+              const webhookData = formatPaymentIntentResponse(updatedPaymentIntent);
+              const eventType = hiroStatus === 'succeeded' 
+                ? 'payment_intent.succeeded' 
+                : 'payment_intent.failed';
+              await createWebhookEvent(paymentIntent.merchantId, eventType, webhookData);
+              console.log(`Sent ${eventType} webhook event for payment intent ${paymentIntentId}`);
+            } catch (webhookError) {
+              console.error('Error sending webhook:', webhookError);
+            }
           }
         } catch (updateError) {
           console.error('Error updating payment intent status:', updateError);

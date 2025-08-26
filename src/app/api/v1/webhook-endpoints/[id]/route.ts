@@ -170,7 +170,12 @@ export async function DELETE(
       );
     }
 
-    // Delete the webhook endpoint (cascade will handle webhook_events)
+    // First delete related webhook events
+    await db
+      .delete(webhookEvents)
+      .where(eq(webhookEvents.webhookEndpointId, id));
+    
+    // Then delete the webhook endpoint
     await db
       .delete(webhookEndpoints)
       .where(eq(webhookEndpoints.id, id));

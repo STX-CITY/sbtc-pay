@@ -19,7 +19,7 @@ export async function POST(
       );
     }
 
-    // First, get the current payment intent
+    // Get the current payment intent
     const currentPaymentIntent = await db
       .select()
       .from(paymentIntents)
@@ -40,31 +40,40 @@ export async function POST(
 
     const paymentIntent = currentPaymentIntent[0];
 
-    // Check if payment intent can be canceled
-    if (!['created', 'pending'].includes(paymentIntent.status)) {
+    // Check if payment intent can be updated
+    if (!['pending', 'created'].includes(paymentIntent.status)) {
       return NextResponse.json(
-        { error: { type: 'invalid_request_error', message: `Payment intent cannot be canceled in status: ${paymentIntent.status}` } },
+        { error: { type: 'invalid_request_error', message: `Payment intent cannot be updated in status: ${paymentIntent.status}` } },
         { status: 400 }
       );
     }
 
-    // Update payment intent to canceled status
-    const [canceledPaymentIntent] = await db
+    // Update payment intent to failed status
+    const [updatedPaymentIntent] = await db
       .update(paymentIntents)
       .set({
-        status: 'canceled',
+        status: 'failed',
+        metadata: {
+          ...(paymentIntent.metadata as any || {}),
+          failure_reason: 'Simulated failure for testing',
+          failed_at: new Date().toISOString()
+        },
         updatedAt: new Date(),
       })
       .where(eq(paymentIntents.id, (await params).id))
       .returning();
 
-    // Send webhook event for payment_intent.canceled
-    const webhookData = formatPaymentIntentResponse(canceledPaymentIntent);
-    await createWebhookEvent(auth.merchantId, 'payment_intent.canceled', webhookData);
+    // Create webhook event for payment_intent.failed
+    const webhookData = formatPaymentIntentResponse(updatedPaymentIntent);
+    await createWebhookEvent(auth.merchantId, 'payment_intent.failed', webhookData);
 
-    return NextResponse.json(webhookData);
+    return NextResponse.json({
+      ...webhookData,
+      simulated: true,
+      message: 'Payment intent marked as failed (simulated)'
+    });
   } catch (error) {
-    console.error('Error canceling payment intent:', error);
+    console.error('Error simulating payment failure:', error);
     return NextResponse.json(
       { error: { type: 'api_error', message: 'Internal server error' } },
       { status: 500 }
