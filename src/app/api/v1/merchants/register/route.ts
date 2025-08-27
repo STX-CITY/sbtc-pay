@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
     // Generate API keys and webhook secret
     const apiKeyLive = generateApiKey('sk_live_');
     const apiKeyTest = generateApiKey('sk_test_');
+    const publicApiKeyLive = generateApiKey('pk_live_');
+    const publicApiKeyTest = generateApiKey('pk_test_');
     const webhookSecret = generateWebhookSecret();
 
     // Create new merchant - auto-approved
@@ -71,18 +73,35 @@ export async function POST(request: NextRequest) {
       webhookSecret,
     };
 
-    // Try to set recipientAddress if the column exists
+    // Try to set optional columns if they exist
     try {
       newMerchant.recipientAddress = validatedData.stacksAddress;
+      newMerchant.publicApiKeyLive = publicApiKeyLive;
+      newMerchant.publicApiKeyTest = publicApiKeyTest;
     } catch (error) {
-      // Column might not exist yet, continue without it
-      console.log('recipientAddress column not available yet');
+      // Columns might not exist yet, continue without them
+      console.log('Some columns not available yet');
     }
 
-    const [createdMerchant] = await db
-      .insert(merchants)
-      .values(newMerchant)
-      .returning();
+    let createdMerchant;
+    try {
+      [createdMerchant] = await db
+        .insert(merchants)
+        .values(newMerchant)
+        .returning();
+    } catch (error: any) {
+      // If public key columns don't exist, retry without them
+      if (error?.cause?.code === '42703') {
+        delete newMerchant.publicApiKeyLive;
+        delete newMerchant.publicApiKeyTest;
+        [createdMerchant] = await db
+          .insert(merchants)
+          .values(newMerchant)
+          .returning();
+      } else {
+        throw error;
+      }
+    }
 
     // Return merchant details (excluding sensitive data for client)
     return NextResponse.json({
@@ -92,6 +111,7 @@ export async function POST(request: NextRequest) {
       stacksAddress: createdMerchant.stacksAddress,
       webhookUrl: createdMerchant.webhookUrl,
       apiKeyTest: createdMerchant.apiKeyTest, // Return test key for immediate use
+      publicApiKeyTest: publicApiKeyTest, // Return generated public test key even if not stored yet
       created: Math.floor(createdMerchant.createdAt.getTime() / 1000),
       message: 'Merchant registration successful! You can now start accepting sBTC payments.'
     }, { status: 201 });

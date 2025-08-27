@@ -22,8 +22,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Select only the columns that exist in the database
     const [merchant] = await db
-      .select()
+      .select({
+        id: merchants.id,
+        name: merchants.name,
+        email: merchants.email,
+        stacksAddress: merchants.stacksAddress,
+        recipientAddress: merchants.recipientAddress,
+        webhookUrl: merchants.webhookUrl,
+        checkoutRedirectUrl: merchants.checkoutRedirectUrl,
+        apiKeyTest: merchants.apiKeyTest,
+        createdAt: merchants.createdAt
+      })
       .from(merchants)
       .where(eq(merchants.id, auth.merchantId))
       .limit(1);
@@ -35,6 +46,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Try to fetch public keys if they exist (handle gracefully if columns don't exist yet)
+    let publicApiKeyTest = null;
+    let publicApiKeyLive = null;
+    
+    try {
+      const [merchantWithPublicKeys] = await db
+        .select()
+        .from(merchants)
+        .where(eq(merchants.id, auth.merchantId))
+        .limit(1);
+      
+      publicApiKeyTest = (merchantWithPublicKeys as any).publicApiKeyTest || null;
+      publicApiKeyLive = (merchantWithPublicKeys as any).publicApiKeyLive || null;
+    } catch (error) {
+      // Columns might not exist yet, continue without them
+      console.log('Public API key columns not available yet');
+    }
+
     return NextResponse.json({
       id: merchant.id,
       name: merchant.name,
@@ -44,7 +73,9 @@ export async function GET(request: NextRequest) {
       webhookUrl: merchant.webhookUrl,
       checkoutRedirectUrl: merchant.checkoutRedirectUrl,
       apiKeyTest: merchant.apiKeyTest,
-      // Don't return live API key for security
+      publicApiKeyTest: publicApiKeyTest,
+      publicApiKeyLive: publicApiKeyLive,
+      // Don't return live secret API key for security
       created: Math.floor(merchant.createdAt.getTime() / 1000)
     });
 

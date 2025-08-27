@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sBTC Pay Embedded Checkout Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .checkout-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>sBTC Pay Embedded Checkout Test</h1>
+        <p>This is a test of the embedded checkout functionality.</p>
+        
+        <div class="checkout-container">
+            <!-- sBTC Pay Embedded Checkout -->
+            <div id="sbtc-checkout-prod_tvXG_9G50M6ycAJf"></div>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+    (function() {
+        var script = document.createElement('script');
+        script.src = 'http://localhost:3000/embed/checkout.js';
+        script.onload = function() {
+            SBTCPay.createCheckout({
+                containerId: 'sbtc-checkout-prod_tvXG_9G50M6ycAJf',
+                productId: 'prod_tvXG_9G50M6ycAJf',
+                apiKey: 'pk_test_bKtnwPcfUSvyFyr28CVaMmxL0LmIvupZ',
+                apiEndpoint: 'http://localhost:3000', // Explicitly set the endpoint
+                style: {
+                    width: '400px',
+                    height: '600px',
+                    borderRadius: '8px',
+                    primaryColor: '#3B82F6',
+                    theme: 'light'
+                },
+                onSuccess: function(paymentIntent) {
+                    console.log('Payment successful:', paymentIntent);
+                    document.getElementById('status').innerHTML = '<div class="status success">✅ Payment successful! Check console for details.</div>';
+                },
+                onError: function(error) {
+                    console.error('Payment error:', error);
+                    document.getElementById('status').innerHTML = '<div class="status error">❌ Payment error: ' + error + '</div>';
+                },
+                onCancel: function() {
+                    console.log('Payment cancelled');
+                    document.getElementById('status').innerHTML = '<div class="status">ℹ️ Payment was cancelled.</div>';
+                }
+            });
+        };
+        script.onerror = function() {
+            document.getElementById('status').innerHTML = '<div class="status error">❌ Failed to load sBTC Pay checkout script. Make sure the server is running on http://localhost:3000</div>';
+        };
+        document.head.appendChild(script);
+    })();
+    </script>
+</body>
+</html>

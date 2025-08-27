@@ -22,26 +22,23 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const auth = await authenticateRequest(request);
-    if (!auth) {
-      return NextResponse.json(
-        { error: { type: 'authentication_error', message: 'Invalid authentication' } },
-        { status: 401 }
-      );
-    }
-
+    
+    // No authentication required - products are public
     const [product] = await db
       .select()
       .from(products)
-      .where(
-        and(
-          eq(products.id, id),
-          eq(products.merchantId, auth.merchantId)
-        )
-      )
+      .where(eq(products.id, id))
       .limit(1);
 
     if (!product) {
+      return NextResponse.json(
+        { error: { type: 'resource_missing', message: 'Product not found' } },
+        { status: 404 }
+      );
+    }
+
+    // Only return active products publicly
+    if (!product.active) {
       return NextResponse.json(
         { error: { type: 'resource_missing', message: 'Product not found' } },
         { status: 404 }

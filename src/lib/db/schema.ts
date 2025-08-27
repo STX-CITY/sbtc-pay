@@ -26,6 +26,8 @@ export const merchants = pgTable('merchants', {
   email: varchar('email', { length: 255 }).unique().notNull(),
   apiKeyLive: varchar('api_key_live', { length: 255 }).unique(),
   apiKeyTest: varchar('api_key_test', { length: 255 }).unique(),
+  publicApiKeyLive: varchar('public_api_key_live', { length: 255 }).unique(),
+  publicApiKeyTest: varchar('public_api_key_test', { length: 255 }).unique(),
   webhookUrl: varchar('webhook_url', { length: 500 }),
   webhookSecret: varchar('webhook_secret', { length: 255 }),
   stacksAddress: varchar('stacks_address', { length: 255 }),

@@ -13,12 +13,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate new API keys for the merchant
-    const { liveKey, testKey } = await createMerchantApiKeys(auth.merchantId);
+    const { liveKey, testKey, publicLiveKey, publicTestKey } = await createMerchantApiKeys(auth.merchantId);
 
     return NextResponse.json({
       message: 'API keys regenerated successfully',
       apiKeyTest: testKey,
-      // Don't return the live key for security (would need admin verification)
+      publicApiKeyTest: publicTestKey,
+      publicApiKeyLive: publicLiveKey,
+      // Don't return the live secret key for security (would need admin verification)
       warning: 'All existing API keys have been invalidated. Update your applications immediately.'
     });
 

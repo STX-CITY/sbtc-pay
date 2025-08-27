@@ -9,12 +9,16 @@ interface MerchantProfile {
   stacksAddress: string;
   webhookUrl?: string;
   apiKeyTest: string;
+  publicApiKeyTest?: string;
+  publicApiKeyLive?: string;
   created: number;
 }
 
 export function ApiKeysSection() {
   const [showLiveKey, setShowLiveKey] = useState(false);
   const [showTestKey, setShowTestKey] = useState(false);
+  const [showPublicLiveKey, setShowPublicLiveKey] = useState(false);
+  const [showPublicTestKey, setShowPublicTestKey] = useState(false);
   const [merchantData, setMerchantData] = useState<MerchantProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
@@ -24,6 +28,8 @@ export function ApiKeysSection() {
   // Live key is not exposed for security - would need separate admin endpoint
   const liveKey = 'sk_live_••••••••••••••••••••••••••••••••••••••••••••';
   const testKey = merchantData?.apiKeyTest || '';
+  const publicLiveKey = merchantData?.publicApiKeyLive || 'pk_live_••••••••••••••••••••••••••••••••••••••••••••';
+  const publicTestKey = merchantData?.publicApiKeyTest || '';
 
   useEffect(() => {
     fetchMerchantProfile();
@@ -169,10 +175,15 @@ export function ApiKeysSection() {
         )}
 
         <div className="space-y-6">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Secret Keys</h3>
+            <p className="text-sm text-gray-600">Use these keys for server-side API requests. Never expose them in client-side code.</p>
+          </div>
+
           {/* Live API Key */}
           <div className="border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-900">Live API Key</h3>
+              <h3 className="text-sm font-medium text-gray-900">Live Secret Key</h3>
               <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">
                 Production
               </span>
@@ -197,7 +208,7 @@ export function ApiKeysSection() {
           {/* Test API Key */}
           <div className="border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-900">Test API Key</h3>
+              <h3 className="text-sm font-medium text-gray-900">Test Secret Key</h3>
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
                 Test
               </span>
@@ -218,6 +229,67 @@ export function ApiKeysSection() {
               <button
                 onClick={() => copyToClipboard(testKey)}
                 disabled={!testKey}
+                className="px-3 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-8 mb-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Public Keys</h3>
+            <p className="text-sm text-gray-600">Use these keys for client-side code like embedded checkout forms. These are safe to expose publicly.</p>
+          </div>
+
+          {/* Public Live API Key */}
+          <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-900">Live Public Key</h3>
+              <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                Production
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              Safe for client-side production use (embedded checkout, etc.)
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 bg-white p-2 rounded text-sm font-mono border border-green-200">
+                {showPublicLiveKey ? publicLiveKey : maskKey(publicLiveKey)}
+              </code>
+              <button
+                onClick={() => setShowPublicLiveKey(!showPublicLiveKey)}
+                disabled={true}
+                className="px-3 py-2 text-sm border rounded bg-gray-100 text-gray-400 cursor-not-allowed"
+              >
+                Contact Support
+              </button>
+            </div>
+          </div>
+
+          {/* Public Test API Key */}
+          <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-900">Test Public Key</h3>
+              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                Test
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              Safe for client-side testing use (embedded checkout, etc.)
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 bg-white p-2 rounded text-sm font-mono border border-green-200">
+                {showPublicTestKey ? publicTestKey : maskKey(publicTestKey)}
+              </code>
+              <button
+                onClick={() => setShowPublicTestKey(!showPublicTestKey)}
+                className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
+              >
+                {showPublicTestKey ? 'Hide' : 'Show'}
+              </button>
+              <button
+                onClick={() => copyToClipboard(publicTestKey)}
+                disabled={!publicTestKey}
                 className="px-3 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Copy
