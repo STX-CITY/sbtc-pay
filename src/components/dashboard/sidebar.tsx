@@ -96,8 +96,7 @@ const devItems = [
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { disconnectWallet } = useWalletStore();
-  const [expandedPayments, setExpandedPayments] = useState(false);
+  const { disconnectWallet, walletAddress } = useWalletStore();
 
   const handleLogout = () => {
     clearAuth();
@@ -114,6 +113,11 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 
   const handleLinkClick = () => {
     if (onClose) onClose();
+  };
+
+  const truncateAddress = (address: string) => {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   return (
@@ -188,66 +192,21 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           </h3>
           <nav className="space-y-1">
             {devItems.map((item) => (
-              <div key={item.name}>
-                {item.name === 'Payments' ? (
-                  <div>
-                    <button
-                      onClick={() => setExpandedPayments(!expandedPayments)}
-                      className={`group flex items-center w-full px-2 py-1.5 text-sm rounded-md text-left ${
-                        pathname.includes('/dashboard/payments') || pathname.includes('/dashboard/payment-links')
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                    >
-                      <span className={`mr-2 ${pathname.includes('/dashboard/payments') || pathname.includes('/dashboard/payment-links') ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}`}>
-                        {item.icon}
-                      </span>
-                      {item.name}
-                      <svg
-                        className={`ml-auto w-4 h-4 transition-transform ${expandedPayments ? 'rotate-90' : ''}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                    {expandedPayments && item.submenu && (
-                      <div className="ml-6 mt-1 space-y-1">
-                        {item.submenu.map((subItem) => (
-                          <Link
-                            key={subItem.name}
-                            href={subItem.href}
-                            onClick={handleLinkClick}
-                            className={`block px-2 py-1.5 text-sm rounded-md ${
-                              isActive(subItem.href)
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                            }`}
-                          >
-                            {subItem.name}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Link
-                    href={item.href}
-                    onClick={handleLinkClick}
-                    className={`group flex items-center px-2 py-1.5 text-sm rounded-md ${
-                      isActive(item.href)
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
-                  >
-                    <span className={`mr-2 ${isActive(item.href) ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}`}>
-                      {item.icon}
-                    </span>
-                    {item.name}
-                  </Link>
-                )}
-              </div>
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={handleLinkClick}
+                className={`group flex items-center px-2 py-1.5 text-sm rounded-md ${
+                  isActive(item.href)
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <span className={`mr-2 ${isActive(item.href) ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}`}>
+                  {item.icon}
+                </span>
+                {item.name}
+              </Link>
             ))}
           </nav>
         </div>
@@ -257,10 +216,10 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
       <div className="border-t border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-gray-600">KN</span>
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-sm font-medium text-blue-600">₿</span>
             </div>
-            <span className="ml-2 text-sm font-medium text-gray-700">Khoa Nguyen</span>
+            <span className="ml-2 text-sm font-medium text-gray-700">{truncateAddress(walletAddress || '')}</span>
           </div>
           <button
             onClick={handleLogout}
