@@ -386,7 +386,7 @@ function EmbedCheckoutContent() {
                       className="w-full py-3 px-4 rounded-lg font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                       style={{ backgroundColor: primaryColor }}
                     >
-                      {paymentStatus === 'processing' ? 'Processing Payment...' : 'Pay with sBTC'}
+                      {(paymentStatus as string) === 'processing' ? 'Processing Payment...' : 'Pay with sBTC'}
                     </button>
                   )}
                 </div>

@@ -25,7 +25,7 @@ export async function validateApiKey(apiKey: string): Promise<{ merchantId: stri
     return null;
   }
 
-  let keyField: string;
+  let keyField: keyof typeof merchants._.columns;
   if (isPublic) {
     keyField = isTest ? 'publicApiKeyTest' : 'publicApiKeyLive';
   } else {
