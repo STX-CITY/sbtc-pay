@@ -2,23 +2,17 @@
 
 import { Product } from '@/types/products';
 import { formatSBTCAmount } from '@/lib/stacks/sbtc';
-import { useState } from 'react';
-
-interface MetadataField {
-  key: string;
-  value: string;
-}
 
 interface CheckoutPreviewProps {
   product: Product | null;
   className?: string;
-  customFields?: MetadataField[];
+  customerEmail?: string;
 }
 
 export function CheckoutPreview({ 
   product, 
   className = "", 
-  customFields = []
+  customerEmail = ""
 }: CheckoutPreviewProps) {
   if (!product) {
     return (
@@ -118,26 +112,9 @@ export function CheckoutPreview({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
               <div className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
-                customer@example.com
+                {customerEmail || "customer@example.com"}
               </div>
             </div>
-
-            {/* Custom Fields */}
-            {customFields.length > 0 && (
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium text-gray-700">Additional Information</h4>
-                {customFields.map((field, index) => (
-                  <div key={index}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {field.key}
-                    </label>
-                    <div className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
-                      {field.value || `Enter ${field.key.toLowerCase()}`}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Payment method</label>

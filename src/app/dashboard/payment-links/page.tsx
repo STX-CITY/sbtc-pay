@@ -35,6 +35,7 @@ export default function PaymentLinksPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showGenerator, setShowGenerator] = useState(false);
   const [customFields, setCustomFields] = useState<MetadataField[]>([{ key: '', value: '' }]);
+  const [customerEmail, setCustomerEmail] = useState<string>('');
   const [generatedLink, setGeneratedLink] = useState<string>('');
   const [showQRCode, setShowQRCode] = useState(false);
 
@@ -66,6 +67,11 @@ export default function PaymentLinksPage() {
     
     const baseUrl = `${window.location.origin}/checkout/product/${selectedProduct.id}`;
     const params = new URLSearchParams();
+    
+    // Add email if provided
+    if (customerEmail) {
+      params.append('email', customerEmail);
+    }
     
     // Add metadata fields to URL
     const validMetadata = customFields.filter(field => field.key && field.value);
@@ -152,6 +158,7 @@ export default function PaymentLinksPage() {
   const resetGenerator = () => {
     setSelectedProduct(null);
     setCustomFields([{ key: '', value: '' }]);
+    setCustomerEmail('');
     setGeneratedLink('');
     setShowQRCode(false);
   };
@@ -248,14 +255,30 @@ export default function PaymentLinksPage() {
                     onProductSelect={setSelectedProduct}
                     className="mb-4"
                   />
-                  
                 </div>
 
-                {/* Custom Fields */}
+                {/* Customer Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Customer Email (Optional)
+                  </label>
+                  <input
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    placeholder="customer@example.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Pre-fill the customer's email address in the checkout form
+                  </p>
+                </div>
+
+                {/* Custom Metadata */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700">
-                      Custom Fields (Optional)
+                      Custom Metadata (Optional)
                     </label>
                     <button
                       onClick={addCustomField}
@@ -271,14 +294,14 @@ export default function PaymentLinksPage() {
                           type="text"
                           value={field.key}
                           onChange={(e) => updateCustomField(index, 'key', e.target.value)}
-                          placeholder="Field name"
+                          placeholder="Key"
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                         <input
                           type="text"
                           value={field.value}
                           onChange={(e) => updateCustomField(index, 'value', e.target.value)}
-                          placeholder="Default value"
+                          placeholder="Value"
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                         {customFields.length > 1 && (
@@ -295,7 +318,7 @@ export default function PaymentLinksPage() {
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Add custom fields that customers will fill in the checkout form
+                    Add custom data that will be stored with the payment
                   </p>
                 </div>
 
@@ -372,7 +395,7 @@ export default function PaymentLinksPage() {
                 <h3 className="text-sm font-medium text-gray-700 mb-4">Preview</h3>
                 <CheckoutPreview 
                   product={selectedProduct} 
-                  customFields={customFields.filter(f => f.key && f.value)}
+                  customerEmail={customerEmail}
                 />
               </div>
             </div>
