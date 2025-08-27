@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db, paymentIntents, products, merchants } from '@/lib/db';
-import { authenticateRequest } from '@/lib/auth/middleware';
 import { generatePaymentIntentId, formatPaymentIntentResponse, getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
 import { createWebhookEvent } from '@/lib/webhooks/sender';
 import { eq } from 'drizzle-orm';
@@ -156,11 +155,27 @@ export async function POST(request: NextRequest) {
       .values(newPaymentIntent)
       .returning();
 
+    // Get merchant's recipient address
+    const [merchant] = await db
+      .select({
+        recipientAddress: merchants.recipientAddress,
+        stacksAddress: merchants.stacksAddress
+      })
+      .from(merchants)
+      .where(eq(merchants.id, merchantId))
+      .limit(1);
+
     // Send webhook event for payment_intent.created
     const webhookData = formatPaymentIntentResponse(createdPaymentIntent);
     await createWebhookEvent(merchantId, 'payment_intent.created', webhookData);
 
-    return NextResponse.json(webhookData);
+    // Add recipient address to response
+    const responseData = {
+      ...webhookData,
+      recipient_address: merchant?.recipientAddress || merchant?.stacksAddress
+    };
+
+    return NextResponse.json(responseData);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -179,19 +194,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await authenticateRequest(request);
-    if (!auth) {
-      return NextResponse.json(
-        { error: { type: 'authentication_error', message: 'Invalid authentication' } },
-        { status: 401 }
-      );
-    }
-
     const url = new URL(request.url);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 100);
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
-    const merchantPaymentIntents = await db
+    const allPaymentIntents = await db
       .select({
         paymentIntent: paymentIntents,
         merchantRecipientAddress: merchants.recipientAddress,
@@ -199,12 +206,11 @@ export async function GET(request: NextRequest) {
       })
       .from(paymentIntents)
       .leftJoin(merchants, eq(paymentIntents.merchantId, merchants.id))
-      .where(eq(paymentIntents.merchantId, auth.merchantId))
       .limit(limit)
       .offset(offset)
       .orderBy(paymentIntents.createdAt);
 
-    const data = merchantPaymentIntents.map(({ paymentIntent, merchantRecipientAddress, merchantStacksAddress }) => {
+    const data = allPaymentIntents.map(({ paymentIntent, merchantRecipientAddress, merchantStacksAddress }) => {
       const formattedPaymentIntent = formatPaymentIntentResponse(paymentIntent);
       return {
         ...formattedPaymentIntent,

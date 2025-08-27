@@ -68,7 +68,8 @@
     iframe.style.borderRadius = finalConfig.style.borderRadius;
     iframe.style.border = '1px solid #e5e7eb';
     iframe.style.backgroundColor = finalConfig.style.theme === 'dark' ? '#1f2937' : '#ffffff';
-    iframe.frameBorder = '0';
+    iframe.setAttribute('frameBorder', '0');
+    iframe.style.border = 'none';
     iframe.allowTransparency = true;
 
     // Clear container and append iframe
@@ -126,13 +127,6 @@
     };
   };
 
-  // Helper function to load CSS
-  function loadCSS(href) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    document.head.appendChild(link);
-  }
 
   // Auto-initialize if data attributes are present
   document.addEventListener('DOMContentLoaded', function() {

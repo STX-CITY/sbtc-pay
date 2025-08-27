@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { products } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { authenticateRequest } from '@/lib/auth/api-key';
+import { authenticateRequest } from '@/lib/auth/middleware';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,8 +17,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Create a mock request with the API key in the authorization header
+    const mockHeaders = new Headers();
+    mockHeaders.set('authorization', `Bearer ${apiKey}`);
+    const mockRequest = new NextRequest(req.url, { headers: mockHeaders });
+    
     // Authenticate the API key
-    const auth = await authenticateRequest(apiKey);
+    const auth = await authenticateRequest(mockRequest);
     if (!auth) {
       return NextResponse.json(
         { error: 'Invalid API key' },
@@ -73,8 +78,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Create a mock request with the API key in the authorization header
+    const mockHeaders = new Headers();
+    mockHeaders.set('authorization', `Bearer ${apiKey}`);
+    const mockRequest = new NextRequest(req.url, { headers: mockHeaders });
+    
     // Authenticate the API key
-    const auth = await authenticateRequest(apiKey);
+    const auth = await authenticateRequest(mockRequest);
     if (!auth) {
       return NextResponse.json(
         { error: 'Invalid API key' },
@@ -108,7 +118,7 @@ export async function POST(req: NextRequest) {
 
     // Create payment intent (this would be expanded with actual payment logic)
     const paymentIntent = {
-      id: `pi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `pi_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       product_id: product_id,
       customer_email: customer_email,
       amount: product.price,
