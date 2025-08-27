@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { formatSBTCAmount } from '@/lib/stacks/sbtc';
 import { getAuthHeaders } from '@/lib/auth/client';
 import { ProductEditModal } from '@/components/dashboard/product-edit-modal';
+import { PaymentLinkGenerator } from '@/components/dashboard/payment-link-generator';
 import { Product } from '@/types/products';
 
 export function ProductList() {
@@ -14,6 +15,8 @@ export function ProductList() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null);
+  const [linkGeneratorProduct, setLinkGeneratorProduct] = useState<Product | null>(null);
+  const [isLinkGeneratorOpen, setIsLinkGeneratorOpen] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -249,6 +252,15 @@ export function ProductList() {
                           {copiedProductId === product.id ? '✓ Copied' : 'Copy Checkout Link'}
                         </button>
                         <button
+                          onClick={() => {
+                            setLinkGeneratorProduct(product);
+                            setIsLinkGeneratorOpen(true);
+                          }}
+                          className="px-3 py-1 text-sm bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100"
+                        >
+                          Generate Link
+                        </button>
+                        <button
                           onClick={() => handleDeleteProduct(product.id)}
                           className="px-3 py-1 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100"
                         >
@@ -281,6 +293,18 @@ export function ProductList() {
         }}
         onSave={handleSaveProduct}
       />
+
+      {/* Payment Link Generator Modal */}
+      {linkGeneratorProduct && (
+        <PaymentLinkGenerator
+          product={linkGeneratorProduct}
+          isOpen={isLinkGeneratorOpen}
+          onClose={() => {
+            setIsLinkGeneratorOpen(false);
+            setLinkGeneratorProduct(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckoutForm } from '@/components/checkout/checkout-form';
 
 interface Product {
@@ -20,11 +20,14 @@ export default function ProductCheckoutPage({
   params: Promise<{ productId: string }> 
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
+  const [urlEmail, setUrlEmail] = useState<string | null>(null);
+  const [urlMetadata, setUrlMetadata] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     const getParams = async () => {
@@ -32,7 +35,24 @@ export default function ProductCheckoutPage({
       setProductId(resolvedParams.productId);
     };
     getParams();
-  }, [params]);
+
+    // Parse URL parameters
+    const email = searchParams.get('email');
+    const metadataParam = searchParams.get('metadata');
+    
+    if (email) {
+      setUrlEmail(email);
+    }
+    
+    if (metadataParam) {
+      try {
+        const metadata = JSON.parse(metadataParam);
+        setUrlMetadata(metadata);
+      } catch (e) {
+        console.error('Failed to parse metadata from URL:', e);
+      }
+    }
+  }, [params, searchParams]);
 
   useEffect(() => {
     if (productId) {
@@ -57,6 +77,13 @@ export default function ProductCheckoutPage({
       // Create a payment intent for this product
       const apiKey = process.env.NEXT_PUBLIC_TEST_API_KEY || 'test_key';
       
+      // Merge URL metadata with default metadata
+      const metadata = {
+        product_id: productData.id,
+        product_name: productData.name,
+        ...(urlMetadata || {})
+      };
+      
       const paymentIntentResponse = await fetch('/api/v1/payment_intents', {
         method: 'POST',
         headers: {
@@ -74,10 +101,8 @@ export default function ProductCheckoutPage({
             merchantId: productData.merchantId // merchantId should come from product data
           },
           description: `Purchase: ${productData.name}`,
-          metadata: {
-            product_id: productData.id,
-            product_name: productData.name
-          }
+          customer_email: urlEmail, // Include email if provided in URL
+          metadata
         })
       });
 
@@ -245,7 +270,10 @@ export default function ProductCheckoutPage({
                 </div>
               </div>
               
-              <CheckoutForm paymentIntentId={paymentIntentId} />
+              <CheckoutForm 
+                paymentIntentId={paymentIntentId} 
+                initialEmail={urlEmail}
+              />
             </div>
           </div>
         </div>

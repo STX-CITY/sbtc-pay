@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatSBTCAmount } from '@/lib/stacks/sbtc';
 import { getAuthHeaders } from '@/lib/auth/client';
+import { PaymentLinkGenerator } from '@/components/dashboard/payment-link-generator';
 
 interface Product {
   id: string;
@@ -31,6 +32,7 @@ export default function ProductDetailsPage({
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLinkGeneratorOpen, setIsLinkGeneratorOpen] = useState(false);
 
   useEffect(() => {
     fetchProduct();
@@ -112,6 +114,12 @@ export default function ProductDetailsPage({
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold">{product.name}</h1>
         <div className="flex gap-2">
+          <button
+            onClick={() => setIsLinkGeneratorOpen(true)}
+            className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
+          >
+            Generate Payment Link
+          </button>
           <Link
             href={`/checkout/product/${product.id}`}
             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -216,6 +224,15 @@ export default function ProductDetailsPage({
           <p>Updated: {new Date(product.updated * 1000).toLocaleString()}</p>
         </div>
       </div>
+
+      {/* Payment Link Generator Modal */}
+      {product && (
+        <PaymentLinkGenerator
+          product={product}
+          isOpen={isLinkGeneratorOpen}
+          onClose={() => setIsLinkGeneratorOpen(false)}
+        />
+      )}
     </div>
   );
 }

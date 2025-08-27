@@ -7,12 +7,14 @@ import { PaymentIntentResponse } from '@/types/api';
 
 interface CheckoutFormProps {
   paymentIntentId: string;
+  initialEmail?: string | null;
 }
 
-export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
+export function CheckoutForm({ paymentIntentId, initialEmail }: CheckoutFormProps) {
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntentResponse | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [customerEmail, setCustomerEmail] = useState<string>('');
+  const [customerEmail, setCustomerEmail] = useState<string>(initialEmail || '');
+  const [emailPreFilled, setEmailPreFilled] = useState<boolean>(!!initialEmail);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
@@ -225,12 +227,20 @@ export function CheckoutForm({ paymentIntentId }: CheckoutFormProps) {
         <div>
           <label htmlFor="customer-email" className="block text-sm font-medium text-gray-900 mb-2">
             Email address
+            {emailPreFilled && (
+              <span className="ml-2 text-xs text-blue-600 font-normal">
+                (Pre-filled from payment link)
+              </span>
+            )}
           </label>
           <input
             type="email"
             id="customer-email"
             value={customerEmail}
-            onChange={(e) => handleEmailChange(e.target.value)}
+            onChange={(e) => {
+              handleEmailChange(e.target.value);
+              setEmailPreFilled(false);
+            }}
             placeholder="your@email.com"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all bg-white text-gray-900 placeholder-gray-500"
           />
