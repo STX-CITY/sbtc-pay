@@ -81,7 +81,12 @@ export default function ProductCheckoutPage({
       const metadata = {
         product_id: productData.id,
         product_name: productData.name,
-        ...(urlMetadata || {})
+        ...(urlMetadata || {}),
+        // Mark if this came from a generated link (has URL parameters)
+        ...(urlEmail || urlMetadata ? {
+          _generated_link: true,
+          _generated_at: new Date().toISOString()
+        } : {})
       };
       
       const paymentIntentResponse = await fetch('/api/v1/payment_intents', {

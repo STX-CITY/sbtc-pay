@@ -44,6 +44,12 @@ function DashboardNavigation({ children }: { children: ReactNode }) {
                 Products
               </Link>
               <Link 
+                href="/dashboard/payment-links" 
+                className="text-gray-600 hover:text-gray-900"
+              >
+                Payment Links
+              </Link>
+              <Link 
                 href="/dashboard/payments" 
                 className="text-gray-600 hover:text-gray-900"
               >

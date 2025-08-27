@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Product } from '@/types/products';
+import { getAuthHeaders } from '@/lib/auth/client';
 
 interface PaymentLinkGeneratorProps {
   product: Product;
@@ -21,11 +22,9 @@ export function PaymentLinkGenerator({ product, isOpen, onClose }: PaymentLinkGe
   ]);
   const [generatedLink, setGeneratedLink] = useState('');
   const [copied, setCopied] = useState(false);
-  const [showQRCode, setShowQRCode] = useState(true);
-
-  useEffect(() => {
-    generateLink();
-  }, [email, metadataFields, product]);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [isGenerated, setIsGenerated] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const generateLink = () => {
     const baseUrl = `${window.location.origin}/checkout/product/${product.id}`;
@@ -75,11 +74,56 @@ export function PaymentLinkGenerator({ product, isOpen, onClose }: PaymentLinkGe
     return qrApiUrl;
   };
 
+  const handleGenerateLink = async () => {
+    generateLink();
+    setIsGenerated(true);
+    setShowQRCode(true);
+    
+    // Save the link to the backend
+    await savePaymentLink();
+  };
+
+  const savePaymentLink = async () => {
+    setIsSaving(true);
+    try {
+      const validMetadata = metadataFields.filter(field => field.key && field.value);
+      const metadataObj: Record<string, string> = {};
+      validMetadata.forEach(field => {
+        metadataObj[field.key] = field.value;
+      });
+
+      const response = await fetch('/api/v1/payment-links', {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          product_id: product.id,
+          product_name: product.name,
+          email: email || undefined,
+          metadata: Object.keys(metadataObj).length > 0 ? metadataObj : undefined,
+          generated_url: generatedLink
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save payment link');
+      }
+    } catch (error) {
+      console.error('Error saving payment link:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const resetForm = () => {
     setEmail('');
     setMetadataFields([{ key: '', value: '' }]);
     setCopied(false);
     setShowQRCode(false);
+    setIsGenerated(false);
+    setGeneratedLink('');
   };
 
   const handleClose = () => {
@@ -201,54 +245,58 @@ export function PaymentLinkGenerator({ product, isOpen, onClose }: PaymentLinkGe
             </p>
           </div>
 
+          {/* Generate Button */}
+          {!isGenerated && (
+            <div className="flex justify-center">
+              <button
+                onClick={handleGenerateLink}
+                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Generate Payment Link
+              </button>
+            </div>
+          )}
+
           {/* Generated Link Preview */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Generated Payment Link
-            </label>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start justify-between">
-                <code className="text-sm text-blue-900 break-all flex-1">
-                  {generatedLink}
-                </code>
-                <button
-                  onClick={copyToClipboard}
-                  className="ml-2 px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
-                >
-                  {copied ? (
-                    <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy
-                    </>
-                  )}
-                </button>
+          {isGenerated && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Generated Payment Link
+              </label>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <code className="text-sm text-blue-900 break-all flex-1">
+                    {generatedLink}
+                  </code>
+                  <button
+                    onClick={copyToClipboard}
+                    className="ml-2 px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                  >
+                    {copied ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* QR Code Section */}
-          <div>
-            <button
-              onClick={() => setShowQRCode(!showQRCode)}
-              className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h2M4 12h8m-4 8h.01M5 8h2m-2 2h2m-2 2h2m-2 2h2" />
-              </svg>
-              {showQRCode ? 'Hide' : 'Show'} QR Code
-            </button>
-            
-            {showQRCode && (
-              <div className="mt-4 flex flex-col items-center">
+          {isGenerated && showQRCode && (
+            <div>
+              <div className="flex flex-col items-center">
                 <div className="bg-white p-4 border border-gray-200 rounded-lg">
                   <img 
                     src={generateQRCode()} 
@@ -260,8 +308,8 @@ export function PaymentLinkGenerator({ product, isOpen, onClose }: PaymentLinkGe
                   Scan this QR code to open the payment page
                 </p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-200">
@@ -278,12 +326,20 @@ export function PaymentLinkGenerator({ product, isOpen, onClose }: PaymentLinkGe
               >
                 Close
               </button>
-              <button
-                onClick={copyToClipboard}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                Copy Link & Close
-              </button>
+              {isGenerated && (
+                <>
+                  <button
+                    onClick={() => {
+                      copyToClipboard();
+                      handleClose();
+                    }}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Copy Link & Close'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
