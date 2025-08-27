@@ -64,8 +64,25 @@ export const paymentIntents = pgTable('payment_intents', {
   metadata: jsonb('metadata'),
   txId: varchar('tx_id', { length: 255 }),
   receiptUrl: varchar('receipt_url', { length: 500 }),
+  sourceLinkId: uuid('source_link_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const paymentLinks = pgTable('payment_links', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  merchantId: uuid('merchant_id').references(() => merchants.id).notNull(),
+  productId: varchar('product_id', { length: 255 }).references(() => products.id),
+  linkCode: varchar('link_code', { length: 255 }).unique().notNull(),
+  email: varchar('email', { length: 255 }),
+  metadata: jsonb('metadata'),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  usedCount: integer('used_count').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  lastUsedAt: timestamp('last_used_at'),
+  createdBy: varchar('created_by', { length: 255 }),
+  notes: text('notes'),
 });
 
 export const paymentMethods = pgTable('payment_methods', {
@@ -139,3 +156,5 @@ export type WebhookEvent = typeof webhookEvents.$inferSelect;
 export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type NewSubscription = typeof subscriptions.$inferInsert;
+export type PaymentLink = typeof paymentLinks.$inferSelect;
+export type NewPaymentLink = typeof paymentLinks.$inferInsert;

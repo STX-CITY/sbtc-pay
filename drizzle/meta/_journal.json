@@ -15,6 +15,13 @@
       "when": 1755757144829,
       "tag": "0001_oval_deathbird",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1756279417604,
+      "tag": "0002_old_victor_mancha",
+      "breakpoints": true
     }
   ]
 }

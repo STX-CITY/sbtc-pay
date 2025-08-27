@@ -10,7 +10,7 @@ export function DocsFAB() {
     { href: '/docs', label: '📚 Documentation', icon: '📚' },
     { href: '/webhook-guide', label: '🔔 Webhook Guide', icon: '🔔' },
     { href: '/test_webhook', label: '🧪 Test Webhooks', icon: '🧪' },
-    { href: '/dashboard/developers', label: '⚙️ Developer Tools', icon: '⚙️' }
+    { href: '/dashboard/developers/api-keys', label: '⚙️ Developer Tools', icon: '⚙️' }
   ];
 
   return (

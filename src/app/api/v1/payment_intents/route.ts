@@ -12,7 +12,12 @@ const createPaymentIntentSchema = z.object({
   currency: z.literal('sbtc').default('sbtc'),
   description: z.string().optional(),
   customer_address: z.string().optional(),
-  customer_email: z.string().email().optional(),
+  customer_email: z.union([
+    z.string().email(),
+    z.literal(""),
+    z.null(),
+    z.undefined()
+  ]).optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   return_url: z.string().url().optional(),
   product_id: z.string().optional(), // Optional product ID to get merchant from
@@ -141,7 +146,7 @@ export async function POST(request: NextRequest) {
       currency: currency,
       status: 'created' as const,
       customerAddress: validatedData.customer_address,
-      customerEmail: validatedData.customer_email,
+      customerEmail: validatedData.customer_email || null,
       description: description,
       metadata: enhancedMetadata,
     };

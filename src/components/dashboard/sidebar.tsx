@@ -64,11 +64,20 @@ const shortcutsItems = [
 
 const devItems = [
   {
-    name: 'Developers',
-    href: '/dashboard/developers',
+    name: 'API Keys',
+    href: '/dashboard/developers/api-keys',
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 12H9v4a2 2 0 01-2 2H5v2a2 2 0 01-2 2H2v-4a2 2 0 012-2h2v-4a2 2 0 012-2h2.343l4.243-4.243A6 6 0 0117 7z" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Webhooks',
+    href: '/dashboard/developers/webhooks',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
       </svg>
     ),
   },
@@ -96,7 +105,7 @@ const devItems = [
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { disconnectWallet, walletAddress } = useWalletStore();
+  const { disconnectWallet, userData } = useWalletStore();
 
   const handleLogout = () => {
     clearAuth();
@@ -219,7 +228,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-sm font-medium text-blue-600">₿</span>
             </div>
-            <span className="ml-2 text-sm font-medium text-gray-700">{truncateAddress(walletAddress || '')}</span>
+            <span className="ml-2 text-sm font-medium text-gray-700">{truncateAddress(userData?.profile.stxAddress.testnet || '')}</span>
           </div>
           <button
             onClick={handleLogout}
@@ -292,7 +301,9 @@ export function Sidebar({ children }: SidebarProps) {
               {pathname.includes('/dashboard/products') && 'Products'}
               {pathname.includes('/dashboard/customers') && 'Customers'}
               {pathname.includes('/dashboard/settings') && 'Settings'}
-              {pathname.includes('/dashboard/developers') && 'Developers'}
+              {pathname.includes('/dashboard/developers/api-keys') && 'API Keys'}
+              {pathname.includes('/dashboard/developers/webhooks') && 'Webhooks'}
+              {pathname.includes('/dashboard/developers') && !pathname.includes('/dashboard/developers/') && 'Developers'}
             </h1>
           </div>
           <div className="flex items-center space-x-4">

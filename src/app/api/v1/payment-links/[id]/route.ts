@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { db, paymentLinks } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
+import { eq, and } from 'drizzle-orm';
 
 const updatePaymentLinkSchema = z.object({
   is_active: z.boolean().optional(),
@@ -25,28 +27,32 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = updatePaymentLinkSchema.parse(body);
 
-    // In production, you would update the payment_links table:
-    // const [updatedLink] = await db
-    //   .update(paymentLinks)
-    //   .set({
-    //     isActive: validatedData.is_active,
-    //     expiresAt: validatedData.expires_at ? new Date(validatedData.expires_at) : undefined,
-    //     updatedAt: new Date()
-    //   })
-    //   .where(and(
-    //     eq(paymentLinks.id, params.id),
-    //     eq(paymentLinks.merchantId, auth.merchantId)
-    //   ))
-    //   .returning();
+    // Update the payment link in the database
+    const [updatedLink] = await db
+      .update(paymentLinks)
+      .set({
+        isActive: validatedData.is_active,
+        expiresAt: validatedData.expires_at ? new Date(validatedData.expires_at) : undefined,
+      })
+      .where(and(
+        eq(paymentLinks.id, params.id),
+        eq(paymentLinks.merchantId, auth.merchantId)
+      ))
+      .returning();
 
-    // For now, return a mock response
-    const updatedLink = {
-      id: params.id,
-      is_active: validatedData.is_active ?? true,
+    if (!updatedLink) {
+      return NextResponse.json(
+        { error: { type: 'not_found_error', message: 'Payment link not found' } },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      id: updatedLink.id,
+      is_active: updatedLink.isActive,
+      expires_at: updatedLink.expiresAt,
       updated_at: new Date().toISOString()
-    };
-
-    return NextResponse.json(updatedLink);
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -78,15 +84,13 @@ export async function DELETE(
       );
     }
 
-    // In production, you would delete from the payment_links table:
-    // await db
-    //   .delete(paymentLinks)
-    //   .where(and(
-    //     eq(paymentLinks.id, params.id),
-    //     eq(paymentLinks.merchantId, auth.merchantId)
-    //   ));
-
-    console.log('Payment link deleted:', params.id);
+    // Delete the payment link from the database
+    const deletedRows = await db
+      .delete(paymentLinks)
+      .where(and(
+        eq(paymentLinks.id, params.id),
+        eq(paymentLinks.merchantId, auth.merchantId)
+      ));
 
     return NextResponse.json({ success: true, id: params.id });
   } catch (error) {
