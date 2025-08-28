@@ -1,19 +1,19 @@
 <!-- sBTC Pay Embedded Checkout -->
-<div id="sbtc-checkout-prod_tvXG_9G50M6ycAJf"></div>
+<div id="sbtc-checkout-prod_luoLWKkMRuA0nWmg"></div>
 <script>
 (function() {
   var script = document.createElement('script');
-  script.src = 'http://localhost:3000/embed/checkout.js';
+  script.src = 'https://sbtcpay.org/embed/checkout.js';
   script.onload = function() {
     SBTCPay.createCheckout({
-      containerId: 'sbtc-checkout-prod_tvXG_9G50M6ycAJf',
-      productId: 'prod_tvXG_9G50M6ycAJf',
-      apiKey: 'pk_test_bKtnwPcfUSvyFyr28CVaMmxL0LmIvupZ', // Your public API key
+      containerId: 'sbtc-checkout-prod_luoLWKkMRuA0nWmg',
+      productId: 'prod_luoLWKkMRuA0nWmg',
+      apiKey: 'pk_test_T-qbkz4Md5gBncAwVwc7AwQBXqnFHeYa', // Your public API key
       style: {
         width: '400px',
         height: '600px',
         borderRadius: '8px',
-        primaryColor: '#000000',
+        primaryColor: '#3B82F6',
         theme: 'light'
       },
       onSuccess: function(paymentIntent) {
