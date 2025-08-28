@@ -1,0 +1,370 @@
+/* sBTC Payment Widget Styles */
+.sbtc-widget {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.sbtc-widget *, .sbtc-widget *::before, .sbtc-widget *::after {
+  box-sizing: inherit;
+}
+
+/* Button Widget */
+.sbtc-widget-button {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.sbtc-widget-button:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+}
+
+.sbtc-widget-button:active {
+  transform: translateY(0);
+}
+
+.sbtc-widget-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sbtc-widget-button .loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Inline Widget */
+.sbtc-widget-inline {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  background: white;
+  max-width: 400px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sbtc-widget-inline-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.sbtc-widget-inline-icon {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.sbtc-widget-inline-title {
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.sbtc-widget-inline-amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 8px 0;
+}
+
+.sbtc-widget-inline-description {
+  color: #6b7280;
+  margin: 0 0 16px 0;
+}
+
+.sbtc-widget-inline-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.sbtc-widget-inline-powered {
+  font-size: 12px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sbtc-widget-inline-powered a {
+  color: #f97316;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Link Widget */
+.sbtc-widget-link {
+  color: #f97316;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  display: inline;
+}
+
+.sbtc-widget-link:hover {
+  color: #ea580c;
+  text-decoration: none;
+}
+
+/* Modal Overlay */
+.sbtc-widget-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sbtc-widget-modal-overlay.show {
+  opacity: 1;
+}
+
+.sbtc-widget-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 90vw;
+  max-height: 90vh;
+  width: 480px;
+  height: 600px;
+  position: relative;
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+  overflow: hidden;
+}
+
+.sbtc-widget-modal-overlay.show .sbtc-widget-modal {
+  transform: scale(1);
+}
+
+.sbtc-widget-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fafafa;
+}
+
+.sbtc-widget-modal-title {
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  font-size: 16px;
+}
+
+.sbtc-widget-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.sbtc-widget-modal-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.sbtc-widget-modal-content {
+  width: 100%;
+  height: calc(100% - 64px);
+  border: none;
+  display: block;
+}
+
+/* Error States */
+.sbtc-widget-error {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+}
+
+/* Loading States */
+.sbtc-widget-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Dark Theme */
+.sbtc-widget.dark .sbtc-widget-inline {
+  background: #1f2937;
+  border-color: #374151;
+  color: white;
+}
+
+.sbtc-widget.dark .sbtc-widget-inline-title {
+  color: white;
+}
+
+.sbtc-widget.dark .sbtc-widget-inline-amount {
+  color: white;
+}
+
+.sbtc-widget.dark .sbtc-widget-inline-description {
+  color: #9ca3af;
+}
+
+.sbtc-widget.dark .sbtc-widget-inline-footer {
+  border-top-color: #374151;
+}
+
+.sbtc-widget.dark .sbtc-widget-modal {
+  background: #1f2937;
+  color: white;
+}
+
+.sbtc-widget.dark .sbtc-widget-modal-header {
+  background: #111827;
+  border-bottom-color: #374151;
+}
+
+.sbtc-widget.dark .sbtc-widget-modal-title {
+  color: white;
+}
+
+.sbtc-widget.dark .sbtc-widget-modal-close {
+  color: #9ca3af;
+}
+
+.sbtc-widget.dark .sbtc-widget-modal-close:hover {
+  background-color: #374151;
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .sbtc-widget-modal {
+    width: 95vw;
+    height: 95vh;
+    max-width: none;
+  }
+  
+  .sbtc-widget-inline {
+    max-width: 100%;
+  }
+  
+  .sbtc-widget-button {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+/* Custom Properties for Theme Customization */
+.sbtc-widget {
+  --sbtc-primary-color: #f97316;
+  --sbtc-primary-hover: #ea580c;
+  --sbtc-text-color: #111827;
+  --sbtc-background: white;
+  --sbtc-border-color: #e5e7eb;
+  --sbtc-border-radius: 8px;
+}
+
+/* Theme Variants */
+.sbtc-widget.theme-blue {
+  --sbtc-primary-color: #3b82f6;
+  --sbtc-primary-hover: #2563eb;
+}
+
+.sbtc-widget.theme-green {
+  --sbtc-primary-color: #10b981;
+  --sbtc-primary-hover: #059669;
+}
+
+.sbtc-widget.theme-purple {
+  --sbtc-primary-color: #8b5cf6;
+  --sbtc-primary-hover: #7c3aed;
+}
+
+.sbtc-widget.theme-minimal {
+  --sbtc-primary-color: #111827;
+  --sbtc-primary-hover: #000000;
+}
+
+/* Apply custom properties */
+.sbtc-widget-button {
+  background: linear-gradient(135deg, var(--sbtc-primary-color) 0%, var(--sbtc-primary-hover) 100%);
+  border-radius: var(--sbtc-border-radius);
+}
+
+.sbtc-widget-button:hover {
+  background: linear-gradient(135deg, var(--sbtc-primary-hover) 0%, var(--sbtc-primary-color) 100%);
+}
+
+.sbtc-widget-inline {
+  background: var(--sbtc-background);
+  border-color: var(--sbtc-border-color);
+  border-radius: var(--sbtc-border-radius);
+}
+
+.sbtc-widget-inline-title,
+.sbtc-widget-inline-amount {
+  color: var(--sbtc-text-color);
+}
+
+.sbtc-widget-inline-icon {
+  background: linear-gradient(135deg, var(--sbtc-primary-color) 0%, var(--sbtc-primary-hover) 100%);
+}
+
+.sbtc-widget-link {
+  color: var(--sbtc-primary-color);
+}
+
+.sbtc-widget-link:hover {
+  color: var(--sbtc-primary-hover);
+}

@@ -68,7 +68,16 @@ const shortcutsItems = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
       </svg>
     ),
-  } 
+  },
+  {
+    name: 'Widget Builder',
+    href: '/dashboard/developers/widget-builder',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+  }
 ];
 
 const devItems = [
@@ -312,6 +321,8 @@ export function Sidebar({ children }: SidebarProps) {
               {pathname.includes('/dashboard/settings') && 'Settings'}
               {pathname.includes('/dashboard/developers/api-keys') && 'API Keys'}
               {pathname.includes('/dashboard/developers/webhooks') && 'Webhooks'}
+              {pathname.includes('/dashboard/developers/widget-builder') && 'Widget Builder'}
+              {pathname.includes('/dashboard/developers/embedded-checkout') && 'Embedded Checkout'}
               {pathname.includes('/dashboard/developers') && !pathname.includes('/dashboard/developers/') && 'Developers'}
             </h1>
           </div>

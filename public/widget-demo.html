@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sBTC Payment Widget Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #6b7280;
+            font-size: 18px;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 32px;
+            margin-bottom: 40px;
+        }
+        
+        .demo-section {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .demo-section h2 {
+            color: #111827;
+            margin-top: 0;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .demo-section p {
+            color: #6b7280;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        
+        .demo-area {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #fafafa;
+        }
+        
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+        
+        .theme-demo {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        
+        .theme-item {
+            text-align: center;
+        }
+        
+        .theme-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .icon {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 40px;
+        }
+        
+        .footer p {
+            color: #6b7280;
+            margin: 8px 0;
+        }
+        
+        .footer a {
+            color: #f97316;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            color: #92400e;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert strong {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>sBTC Payment Widget Demo</h1>
+        <p>Interactive examples of the sBTC payment drop-in widgets</p>
+    </div>
+
+    <div class="alert">
+        <strong>Demo Note:</strong> This demo uses test API keys. In production, replace with your actual public API key from the dashboard.
+    </div>
+
+    <div class="demo-grid">
+        <!-- Button Widget -->
+        <div class="demo-section">
+            <h2><span class="icon">B</span> Button Widget</h2>
+            <p>The most common widget type. Perfect for product pages, shopping carts, and call-to-action sections.</p>
+            
+            <div class="demo-area">
+                <div data-sbtc-button 
+                     data-amount="50000" 
+                     data-description="Premium Coffee Subscription">
+                </div>
+            </div>
+            
+            <div class="code-block">&lt;script src="/widget.js" data-sbtc-key="pk_test_demo123"&gt;&lt;/script&gt;
+&lt;div data-sbtc-button 
+     data-amount="50000" 
+     data-description="Premium Coffee Subscription"&gt;
+&lt;/div&gt;</div>
+        </div>
+
+        <!-- Inline Widget -->
+        <div class="demo-section">
+            <h2><span class="icon">I</span> Inline Widget</h2>
+            <p>A card-style widget that shows payment details inline. Great for checkout pages and payment forms.</p>
+            
+            <div class="demo-area">
+                <div data-sbtc-inline 
+                     data-amount="125000" 
+                     data-description="MacBook Pro 16-inch"
+                     data-button-text="Pay with sBTC">
+                </div>
+            </div>
+            
+            <div class="code-block">&lt;script src="/widget.js" data-sbtc-key="pk_test_demo123"&gt;&lt;/script&gt;
+&lt;div data-sbtc-inline 
+     data-amount="125000" 
+     data-description="MacBook Pro 16-inch"
+     data-button-text="Pay with sBTC"&gt;
+&lt;/div&gt;</div>
+        </div>
+
+        <!-- Link Widget -->
+        <div class="demo-section">
+            <h2><span class="icon">L</span> Link Widget</h2>
+            <p>A simple text link that triggers the payment modal. Ideal for minimal designs and text-heavy content.</p>
+            
+            <div class="demo-area">
+                You can <span data-sbtc-link 
+                             data-amount="25000" 
+                             data-description="Donate to Open Source">donate here</span> to support our project.
+            </div>
+            
+            <div class="code-block">&lt;script src="/widget.js" data-sbtc-key="pk_test_demo123"&gt;&lt;/script&gt;
+You can &lt;span data-sbtc-link 
+             data-amount="25000" 
+             data-description="Donate to Open Source"&gt;donate here&lt;/span&gt; to support our project.</div>
+        </div>
+
+        <!-- Theme Variations -->
+        <div class="demo-section">
+            <h2><span class="icon">T</span> Theme Variations</h2>
+            <p>Customize the appearance with built-in themes or your own CSS variables.</p>
+            
+            <div class="theme-demo">
+                <div class="theme-item">
+                    <div class="theme-label">Default</div>
+                    <div data-sbtc-button 
+                         data-amount="10000" 
+                         data-description="Default Theme">
+                    </div>
+                </div>
+                
+                <div class="theme-item">
+                    <div class="theme-label">Blue</div>
+                    <div data-sbtc-button 
+                         data-amount="10000" 
+                         data-description="Blue Theme"
+                         data-theme="blue">
+                    </div>
+                </div>
+                
+                <div class="theme-item">
+                    <div class="theme-label">Green</div>
+                    <div data-sbtc-button 
+                         data-amount="10000" 
+                         data-description="Green Theme"
+                         data-theme="green">
+                    </div>
+                </div>
+                
+                <div class="theme-item">
+                    <div class="theme-label">Minimal</div>
+                    <div data-sbtc-button 
+                         data-amount="10000" 
+                         data-description="Minimal Theme"
+                         data-theme="minimal">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="code-block">&lt;!-- Theme examples --&gt;
+&lt;div data-sbtc-button data-theme="blue"&gt;&lt;/div&gt;
+&lt;div data-sbtc-button data-theme="green"&gt;&lt;/div&gt;
+&lt;div data-sbtc-button data-theme="minimal"&gt;&lt;/div&gt;</div>
+        </div>
+
+        <!-- Configuration Options -->
+        <div class="demo-section">
+            <h2><span class="icon">C</span> Configuration Options</h2>
+            <p>All available data attributes for customizing your widgets.</p>
+            
+            <div class="demo-area">
+                <div data-sbtc-inline 
+                     data-amount="75000" 
+                     data-description="Custom Configuration Demo"
+                     data-button-text="Pay Now"
+                     data-currency="sbtc"
+                     data-theme="purple">
+                </div>
+            </div>
+            
+            <div class="code-block">&lt;!-- All configuration options --&gt;
+&lt;div data-sbtc-button
+     data-amount="100000"                 &lt;!-- Amount in microsBTC --&gt;
+     data-description="Product Name"      &lt;!-- Payment description --&gt;
+     data-button-text="Buy Now"          &lt;!-- Custom button text --&gt;
+     data-currency="sbtc"                &lt;!-- Currency (sbtc/btc) --&gt;
+     data-theme="blue"                   &lt;!-- Theme variant --&gt;
+     data-success-url="/success"         &lt;!-- Redirect on success --&gt;
+     data-cancel-url="/cancel"&gt;          &lt;!-- Redirect on cancel --&gt;
+&lt;/div&gt;</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p><strong>Ready to integrate?</strong></p>
+        <p>Get your API keys and start accepting sBTC payments in minutes.</p>
+        <p><a href="/dashboard">Get Started →</a></p>
+    </div>
+
+    <!-- Widget Script -->
+    <script src="/widget.js" data-sbtc-key="pk_test_demo123456789"></script>
+</body>
+</html>
