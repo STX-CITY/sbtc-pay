@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, merchants } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,11 +15,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find merchant by public API key
+    // Find merchant by public API key (check both test and live keys)
     const [merchant] = await db
       .select()
       .from(merchants)
-      .where(eq(merchants.publicApiKey, apiKey))
+      .where(
+        or(
+          eq(merchants.publicApiKeyTest, apiKey),
+          eq(merchants.publicApiKeyLive, apiKey)
+        )
+      )
       .limit(1);
 
     if (!merchant) {
@@ -57,8 +62,7 @@ export async function POST(request: NextRequest) {
       success: true,
       merchant: {
         id: merchant.id,
-        name: merchant.name,
-        domain: merchant.domain
+        name: merchant.name
       },
       widget: {
         type: widgetType,

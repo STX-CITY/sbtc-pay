@@ -65,10 +65,13 @@ function EmbedCheckoutContent() {
         id: 'direct',
         name: directDescription || 'Payment',
         description: directDescription || '',
+        type: 'payment',
         price: parseInt(directAmount || '0'),
-        price_usd: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        price_usd: undefined,
+        currency: 'sbtc',
+        active: true,
+        created: Date.now(),
+        updated: Date.now()
       };
       setProduct(virtualProduct);
 
