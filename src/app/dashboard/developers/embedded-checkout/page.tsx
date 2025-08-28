@@ -17,6 +17,7 @@ export default function EmbeddedCheckoutPage() {
     borderRadius: '8px',
     primaryColor: '#3B82F6'
   });
+  const [showCopyAlert, setShowCopyAlert] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -102,10 +103,22 @@ export default function EmbeddedCheckoutPage() {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedCode);
+    setShowCopyAlert(true);
+    setTimeout(() => setShowCopyAlert(false), 3000);
   };
 
   return (
     <div className="space-y-8">
+      {/* Success Alert */}
+      {showCopyAlert && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span>Code copied to clipboard!</span>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Embedded Checkout</h1>
         <p className="text-gray-600">

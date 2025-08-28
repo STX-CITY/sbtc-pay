@@ -315,7 +315,7 @@ export function Sidebar({ children }: SidebarProps) {
               {pathname.includes('/dashboard/developers') && !pathname.includes('/dashboard/developers/') && 'Developers'}
             </h1>
           </div>
-          <div className="flex items-center space-x-4">
+          {/* <div className="flex items-center space-x-4">
             <button className="p-2 text-gray-400 hover:text-gray-600">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4 19h10a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -327,7 +327,7 @@ export function Sidebar({ children }: SidebarProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Page content */}
