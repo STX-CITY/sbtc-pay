@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const createPaymentLinkSchema = z.object({
   product_id: z.string(),
-  product_name: z.string(),
+  product_name: z.string().optional(),
   email: z.string().email().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   generated_url: z.string(),
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       id: insertedPaymentLink.id,
       merchant_id: auth.merchantId,
       product_id: validatedData.product_id,
-      product_name: product?.name || validatedData.product_name,
+      product_name: product?.name || validatedData.product_name || 'Unknown Product',
       link_code: linkCode,
       email: validatedData.email,
       metadata: validatedData.metadata,

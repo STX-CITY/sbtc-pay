@@ -11,7 +11,6 @@ export function ApiReference() {
   const [pathParams, setPathParams] = useState<{[key: string]: string}>({});
   const [paymentLinkForm, setPaymentLinkForm] = useState({
     product_id: '',
-    product_name: '',
     email: '',
     metadata: [{ key: '', value: '' }],
     expires_at: ''
@@ -78,7 +77,6 @@ export function ApiReference() {
 
     const data: any = {
       product_id: paymentLinkForm.product_id,
-      product_name: paymentLinkForm.product_name,
       generated_url: `${window.location.origin}/checkout/product/${paymentLinkForm.product_id}`
     };
 
@@ -258,7 +256,6 @@ export function ApiReference() {
       description: 'Generate a payment link for a specific product with optional customization',
       sampleData: {
         product_id: "prod_1234567890",
-        product_name: "Premium Plan",
         email: "customer@example.com",
         metadata: {
           campaign: "summer_sale",
@@ -459,19 +456,6 @@ export function ApiReference() {
                       </div>
 
                       {/* Product Name */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Product Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={paymentLinkForm.product_name}
-                          onChange={(e) => setPaymentLinkForm(prev => ({ ...prev, product_name: e.target.value }))}
-                          placeholder="Premium Plan"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Display name for the product</p>
-                      </div>
 
                       {/* Email */}
                       <div>

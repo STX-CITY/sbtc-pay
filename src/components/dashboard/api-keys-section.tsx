@@ -177,7 +177,7 @@ export function ApiKeysSection() {
         <div className="space-y-6">
           <div className="mb-4">
             <h3 className="text-base font-semibold text-gray-900 mb-2">Secret Keys</h3>
-            <p className="text-sm text-gray-600">Use these keys for server-side API requests. Never expose them in client-side code.</p>
+            <p className="text-sm text-gray-600">Use these keys for <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-md font-semibold">server-side API requests</span>. Never expose them in client-side code.</p>
           </div>
 
           {/* Live API Key */}
@@ -238,7 +238,7 @@ export function ApiKeysSection() {
 
           <div className="mt-8 mb-4">
             <h3 className="text-base font-semibold text-gray-900 mb-2">Public Keys</h3>
-            <p className="text-sm text-gray-600">Use these keys for client-side code like embedded checkout forms. These are safe to expose publicly.</p>
+            <p className="text-sm text-gray-600">Use these keys for <span className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-2 py-1 rounded-md font-semibold">client-side code like embedded checkout forms</span>. These are safe to expose publicly.</p>
           </div>
 
           {/* Public Live API Key */}
