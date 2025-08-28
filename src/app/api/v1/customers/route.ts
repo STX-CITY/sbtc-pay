@@ -47,8 +47,11 @@ export async function GET(request: NextRequest) {
     const customersMap = new Map();
     
     successfulPayments.forEach(payment => {
-      const customerId = payment.customerAddress || payment.customerEmail;
-      if (!customerId) return;
+      const customerId = payment.customerAddress || payment.customerEmail || `anonymous_${payment.txId}`;
+      
+      // Skip if neither address nor email is available (anonymous payments)
+      // but we'll still create an entry using the transaction ID as identifier
+      const isAnonymous = !payment.customerAddress && !payment.customerEmail;
 
       if (customersMap.has(customerId)) {
         const existing = customersMap.get(customerId);
@@ -71,6 +74,7 @@ export async function GET(request: NextRequest) {
           id: customerId,
           address: payment.customerAddress,
           email: payment.customerEmail,
+          is_anonymous: isAnonymous,
           total_spent: payment.totalAmount,
           total_spent_usd: payment.amountUsd ? parseFloat(payment.amountUsd) : undefined,
           currency: payment.currency,
