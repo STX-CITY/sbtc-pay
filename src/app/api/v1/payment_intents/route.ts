@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { db, paymentIntents, products, merchants } from '@/lib/db';
 import { generatePaymentIntentId, formatPaymentIntentResponse, getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
 import { createWebhookEvent } from '@/lib/webhooks/sender';
-import { eq } from 'drizzle-orm';
+import { authenticateRequest } from '@/lib/auth/middleware';
+import { eq, and, desc } from 'drizzle-orm';
 
 const createPaymentIntentSchema = z.object({
   amount: z.number().positive().optional(),
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     const validatedData = createPaymentIntentSchema.parse(body);
 
     let merchantId: string;
-    let productId: string | undefined;
+  let productId: string | undefined;
     let amount: number;
     let amountUsd: number | undefined;
     let description: string | undefined;
@@ -194,11 +195,29 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Authenticate the request
+    const auth = await authenticateRequest(request);
+    if (!auth) {
+      return NextResponse.json(
+        { error: { type: 'authentication_error', message: 'Invalid authentication' } },
+        { status: 401 }
+      );
+    }
+
     const url = new URL(request.url);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 100);
     const offset = parseInt(url.searchParams.get('offset') || '0');
+    const status = url.searchParams.get('status');
 
-    const allPaymentIntents = await db
+    // Build where conditions to filter by merchant
+    const conditions = [eq(paymentIntents.merchantId, auth.merchantId)];
+    
+    // Filter by status if specified
+    if (status) {
+      conditions.push(eq(paymentIntents.status, status as any));
+    }
+
+    const merchantPaymentIntents = await db
       .select({
         paymentIntent: paymentIntents,
         merchantRecipientAddress: merchants.recipientAddress,
@@ -206,11 +225,12 @@ export async function GET(request: NextRequest) {
       })
       .from(paymentIntents)
       .leftJoin(merchants, eq(paymentIntents.merchantId, merchants.id))
+      .where(and(...conditions))
       .limit(limit)
       .offset(offset)
-      .orderBy(paymentIntents.createdAt);
+      .orderBy(desc(paymentIntents.createdAt));
 
-    const data = allPaymentIntents.map(({ paymentIntent, merchantRecipientAddress, merchantStacksAddress }) => {
+    const data = merchantPaymentIntents.map(({ paymentIntent, merchantRecipientAddress, merchantStacksAddress }) => {
       const formattedPaymentIntent = formatPaymentIntentResponse(paymentIntent);
       return {
         ...formattedPaymentIntent,
