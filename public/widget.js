@@ -2,7 +2,7 @@
  * sBTC Payment Widget v1.0
  * Drop-in payment widgets for sBTC payments
  * 
- * Usage: <script src="/widget.js" data-sbtc-key="pk_..." data-product-id="..."></script>
+ * Usage: <script src="/widget.js" data-sbtc-key="pk_..."></script>
  */
 
 (function() {
@@ -11,7 +11,19 @@
   // Configuration
   const WIDGET_CONFIG = {
     version: '1.0.0',
-    apiBase: window.location.origin,
+    apiBase: (function() {
+      // Extract the base URL from the script source
+      const scripts = document.getElementsByTagName('script');
+      for (let i = 0; i < scripts.length; i++) {
+        const src = scripts[i].src;
+        if (src && src.includes('/widget.js')) {
+          const url = new URL(src);
+          return url.origin;
+        }
+      }
+      // Fallback to current origin if script source not found
+      return window.location.origin;
+    })(),
     embedPath: '/embed/checkout',
     defaultTheme: 'light',
     defaultColor: '#3B82F6',
@@ -272,7 +284,9 @@
     constructor(config) {
       this.config = {
         apiKey: config.apiKey,
-        productId: config.productId,
+        amount: config.amount ? parseInt(config.amount) : null,
+        description: config.description || 'Payment',
+        productId: config.productId || null, // Support legacy product-id
         theme: config.theme || WIDGET_CONFIG.defaultTheme,
         color: config.color || WIDGET_CONFIG.defaultColor,
         text: config.text || WIDGET_CONFIG.defaultText,
@@ -280,12 +294,11 @@
         type: config.type || 'button',
         showAmount: config.showAmount !== 'false',
         showDescription: config.showDescription !== 'false',
-        customAmount: config.customAmount ? parseFloat(config.customAmount) : null,
         element: config.element
       };
       
       this.id = utils.generateId();
-      this.product = null;
+      // Removed product property - using config directly
       this.modal = null;
       
       this.init();
@@ -307,16 +320,8 @@
     }
 
     async loadProduct() {
-      if (!this.config.productId) return;
-
-      try {
-        const response = await fetch(`${WIDGET_CONFIG.apiBase}/api/v1/products/${this.config.productId}`);
-        if (response.ok) {
-          this.product = await response.json();
-        }
-      } catch (error) {
-        console.error('Failed to load product:', error);
-      }
+      // Skip product loading - use amount/description directly from widget config
+      return;
     }
 
     createWidget() {
@@ -344,12 +349,8 @@
 
       const content = [this.config.text];
       
-      if (this.config.showAmount && this.product) {
-        const amount = this.config.customAmount 
-          ? `$${this.config.customAmount.toFixed(2)}`
-          : this.product.price_usd 
-            ? `$${this.product.price_usd.toFixed(2)}`
-            : `${(this.product.price / 100000000).toFixed(8)} sBTC`;
+      if (this.config.showAmount && this.config.amount) {
+        const amount = `${(this.config.amount / 100000000).toFixed(8)} sBTC`;
         content.push(` - ${amount}`);
       }
 
@@ -381,34 +382,21 @@
         'data-sbtc-widget-id': this.id
       });
 
-      if (this.product) {
-        // Product info
-        if (this.config.showDescription && this.product.name) {
-          const name = utils.createElement('div', {
-            className: 'sbtc-widget-product-name'
-          }, this.product.name);
-          widget.appendChild(name);
-        }
+      // Product info from config
+      if (this.config.showDescription && this.config.description) {
+        const description = utils.createElement('div', {
+          className: 'sbtc-widget-product-description'
+        }, this.config.description);
+        widget.appendChild(description);
+      }
 
-        if (this.config.showDescription && this.product.description) {
-          const description = utils.createElement('div', {
-            className: 'sbtc-widget-product-description'
-          }, this.product.description);
-          widget.appendChild(description);
-        }
-
-        if (this.config.showAmount) {
-          const amount = this.config.customAmount 
-            ? `$${this.config.customAmount.toFixed(2)}`
-            : this.product.price_usd 
-              ? `$${this.product.price_usd.toFixed(2)}`
-              : `${(this.product.price / 100000000).toFixed(8)} sBTC`;
-          
-          const price = utils.createElement('div', {
-            className: 'sbtc-widget-product-price'
-          }, amount);
-          widget.appendChild(price);
-        }
+      if (this.config.showAmount && this.config.amount) {
+        const amount = `${(this.config.amount / 100000000).toFixed(8)} sBTC`;
+        
+        const price = utils.createElement('div', {
+          className: 'sbtc-widget-product-price'
+        }, amount);
+        widget.appendChild(price);
       }
 
       // Payment button
@@ -443,8 +431,10 @@
         return;
       }
 
-      if (!this.config.productId && !this.config.customAmount) {
-        this.showError('Product ID or custom amount is required');
+      // Amount is optional - widget can work without it if the checkout page handles it
+      // Only show warning if amount is explicitly set to 0
+      if (this.config.amount === 0) {
+        this.showError('Amount must be greater than 0');
         return;
       }
 
@@ -497,12 +487,17 @@
           primary_color: this.config.color
         });
 
+        // Support both product-based and direct amount checkout
         if (this.config.productId) {
           params.append('product_id', this.config.productId);
-        }
-
-        if (this.config.customAmount) {
-          params.append('amount_usd', this.config.customAmount.toString());
+        } else {
+          // Use direct amount/description
+          if (this.config.amount) {
+            params.append('amount', this.config.amount.toString());
+          }
+          if (this.config.description) {
+            params.append('description', this.config.description);
+          }
         }
 
         const checkoutUrl = `${WIDGET_CONFIG.apiBase}${WIDGET_CONFIG.embedPath}?${params.toString()}`;
@@ -554,7 +549,7 @@
 
       // Listen for postMessage events
       const messageHandler = (event) => {
-        if (event.origin !== window.location.origin) return;
+        if (event.origin !== WIDGET_CONFIG.apiBase) return;
 
         switch (event.data.type) {
           case 'sbtc_payment_success':
@@ -638,14 +633,14 @@
     scripts.forEach(script => {
       const config = {
         apiKey: utils.getData(script, 'sbtc-key') || utils.getData(script, 'key'),
-        productId: utils.getData(script, 'product-id'),
+        amount: utils.getData(script, 'amount'),
+        description: utils.getData(script, 'description', 'Payment'),
         theme: utils.getData(script, 'theme', WIDGET_CONFIG.defaultTheme),
         color: utils.getData(script, 'color', WIDGET_CONFIG.defaultColor),
         text: utils.getData(script, 'text', WIDGET_CONFIG.defaultText),
         size: utils.getData(script, 'size', WIDGET_CONFIG.defaultSize),
         showAmount: utils.getData(script, 'show-amount', 'true'),
-        showDescription: utils.getData(script, 'show-description', 'true'),
-        customAmount: utils.getData(script, 'custom-amount')
+        showDescription: utils.getData(script, 'show-description', 'true')
       };
 
       if (config.apiKey) {
@@ -658,28 +653,35 @@
       }
     });
 
+    // Get API key from script tag
+    const scriptTag = document.querySelector('script[data-sbtc-key], script[src*="widget.js"][data-sbtc-key]');
+    const globalApiKey = scriptTag ? (utils.getData(scriptTag, 'sbtc-key') || utils.getData(scriptTag, 'key')) : null;
+    
     // Find and initialize element-based widgets
-    const elements = document.querySelectorAll('[data-sbtc-widget], [data-sbtc-button], [data-sbtc-link]');
+    const elements = document.querySelectorAll('[data-sbtc-widget], [data-sbtc-button], [data-sbtc-inline], [data-sbtc-link]');
     elements.forEach(element => {
       const config = {
-        apiKey: utils.getData(element, 'sbtc-key') || utils.getData(element, 'key'),
-        productId: utils.getData(element, 'product-id'),
+        apiKey: utils.getData(element, 'sbtc-key') || utils.getData(element, 'key') || globalApiKey,
+        amount: utils.getData(element, 'amount'),
+        description: utils.getData(element, 'description', 'Payment'),
+        productId: utils.getData(element, 'product-id'), // Support legacy product-id
         theme: utils.getData(element, 'theme', WIDGET_CONFIG.defaultTheme),
         color: utils.getData(element, 'color', WIDGET_CONFIG.defaultColor),
-        text: utils.getData(element, 'text', WIDGET_CONFIG.defaultText),
+        text: utils.getData(element, 'button-text', WIDGET_CONFIG.defaultText),
         size: utils.getData(element, 'size', WIDGET_CONFIG.defaultSize),
         type: utils.getData(element, 'type', 'button'),
         showAmount: utils.getData(element, 'show-amount', 'true'),
         showDescription: utils.getData(element, 'show-description', 'true'),
-        customAmount: utils.getData(element, 'custom-amount'),
         element: element
       };
 
       // Determine widget type from element attributes
       if (element.hasAttribute('data-sbtc-link')) {
         config.type = 'link';
-      } else if (utils.getData(element, 'type') === 'inline') {
+      } else if (element.hasAttribute('data-sbtc-inline') || utils.getData(element, 'type') === 'inline') {
         config.type = 'inline';
+      } else if (element.hasAttribute('data-sbtc-button')) {
+        config.type = 'button';
       }
 
       if (config.apiKey) {
@@ -704,6 +706,7 @@
           if (node.hasAttribute && (
             node.hasAttribute('data-sbtc-widget') ||
             node.hasAttribute('data-sbtc-button') ||
+            node.hasAttribute('data-sbtc-inline') ||
             node.hasAttribute('data-sbtc-link') ||
             (node.tagName === 'SCRIPT' && node.hasAttribute('data-sbtc-key'))
           )) {

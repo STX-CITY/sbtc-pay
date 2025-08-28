@@ -61,19 +61,24 @@ export default function WidgetBuilderPage() {
 
   const generateWidgetCode = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://yoursite.com';
+    const selectedProd = products.find(p => p.id === config.productId);
+    const amount = config.customAmount 
+      ? Math.round(config.customAmount * 100_000_000) 
+      : selectedProd?.price || 0;
+    const description = selectedProd?.description || selectedProd?.name || 'Payment';
     
     if (config.widgetType === 'button') {
       return `<!-- sBTC Payment Widget -->
 <script src="${baseUrl}/widget.js" 
         data-sbtc-key="pk_test_your_public_key_here"
-        data-product-id="${config.productId}"
+        data-amount="${amount}"
+        data-description="${description}"
         data-theme="${config.theme}"
         data-color="${config.primaryColor}"
         data-size="${config.buttonSize}"
         data-text="${config.buttonText}"
         ${config.showAmount ? 'data-show-amount="true"' : ''}
-        ${config.showDescription ? 'data-show-description="true"' : ''}
-        ${config.customAmount ? `data-custom-amount="${config.customAmount}"` : ''}>
+        ${config.showDescription ? 'data-show-description="true"' : ''}>
 </script>`;
     }
     
@@ -81,7 +86,8 @@ export default function WidgetBuilderPage() {
       return `<!-- sBTC Inline Widget -->
 <div data-sbtc-widget
      data-sbtc-key="pk_test_your_public_key_here"
-     data-product-id="${config.productId}"
+     data-amount="${amount}"
+     data-description="${description}"
      data-theme="${config.theme}"
      data-color="${config.primaryColor}"
      data-type="inline"
@@ -96,7 +102,8 @@ export default function WidgetBuilderPage() {
 <a href="#" 
    data-sbtc-link
    data-sbtc-key="pk_test_your_public_key_here"
-   data-product-id="${config.productId}"
+   data-amount="${amount}"
+   data-description="${description}"
    data-theme="${config.theme}"
    data-color="${config.primaryColor}"
    style="color: ${config.primaryColor}">

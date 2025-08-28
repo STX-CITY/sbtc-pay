@@ -31,21 +31,78 @@ function EmbedCheckoutContent() {
   const apiKey = searchParams.get('api_key');
   const theme = searchParams.get('theme') || 'light';
   const primaryColor = searchParams.get('primary_color') || '#3B82F6';
+  
+  // Support both product_id and direct amount/description
+  const directAmount = searchParams.get('amount');
+  const directDescription = searchParams.get('description');
 
   const { currentAddress } = useWalletStore();
 
   useEffect(() => {
-    if (productId && apiKey) {
-      fetchProductAndCreatePaymentIntent();
+    if (apiKey) {
+      if (productId) {
+        fetchProductAndCreatePaymentIntent();
+      } else if (directAmount) {
+        createDirectPaymentIntent();
+      } else {
+        setError('Missing required parameters: need either product_id or amount');
+        setLoading(false);
+      }
     } else {
-      setError('Missing required parameters');
+      setError('Missing required API key');
       setLoading(false);
     }
-  }, [productId, apiKey]);
+  }, [productId, apiKey, directAmount]);
 
   useEffect(() => {
     setWalletAddress(currentAddress);
   }, [currentAddress]);
+
+  const createDirectPaymentIntent = async () => {
+    try {
+      // Create a virtual product from the direct parameters
+      const virtualProduct: Product = {
+        id: 'direct',
+        name: directDescription || 'Payment',
+        description: directDescription || '',
+        price: parseInt(directAmount || '0'),
+        price_usd: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setProduct(virtualProduct);
+
+      // Create a payment intent with the direct amount
+      const paymentIntentResponse = await fetch('/api/v1/payment_intents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          amount: parseInt(directAmount || '0'),
+          description: directDescription || 'Widget Payment',
+          customer_email: customerEmail,
+          metadata: {
+            _embedded_checkout: true,
+            _widget_payment: true,
+            _generated_at: new Date().toISOString()
+          }
+        })
+      });
+
+      if (!paymentIntentResponse.ok) {
+        throw new Error('Failed to create payment intent');
+      }
+
+      const paymentIntentData = await paymentIntentResponse.json();
+      setPaymentIntent(paymentIntentData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create payment');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchProductAndCreatePaymentIntent = async () => {
     try {
