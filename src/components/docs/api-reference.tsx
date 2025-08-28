@@ -147,7 +147,39 @@ export function ApiReference() {
           [endpointKey]: data.error?.message || `HTTP ${response.status}: ${response.statusText}`
         }));
       } else {
-        setEndpointResponses(prev => ({ ...prev, [endpointKey]: data }));
+        // Special handling for payment-links POST response
+        if (endpoint === '/payment-links' && method === 'POST' && data.product_id) {
+          const baseUrl = `${window.location.origin}/checkout/product/${data.product_id}`;
+          const params = new URLSearchParams();
+          
+          // Add email if provided
+          if (data.email) {
+            params.append('email', data.email);
+          }
+          
+          // Add metadata if provided
+          if (data.metadata && Object.keys(data.metadata).length > 0) {
+            const cleanMetadata = Object.fromEntries(
+              Object.entries(data.metadata).filter(([key]) => !key.startsWith('_'))
+            );
+            if (Object.keys(cleanMetadata).length > 0) {
+              params.append('metadata', JSON.stringify(cleanMetadata));
+            }
+          }
+          
+          const generatedPaymentUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+          
+          // Add the generated payment link to the response
+          const enhancedData = {
+            ...data,
+            payment_link_url: generatedPaymentUrl,
+            qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatedPaymentUrl)}`
+          };
+          
+          setEndpointResponses(prev => ({ ...prev, [endpointKey]: enhancedData }));
+        } else {
+          setEndpointResponses(prev => ({ ...prev, [endpointKey]: data }));
+        }
       }
     } catch (error) {
       setEndpointErrors(prev => ({ 
