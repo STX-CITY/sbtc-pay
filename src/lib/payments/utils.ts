@@ -75,7 +75,7 @@ export async function getExchangeRate(): Promise<number> {
   } catch (error) {
     console.error('Error fetching exchange rate from CoinGecko:', error);
     // Fallback to a reasonable default if API fails
-    return 98500.00; // Fallback rate
+    return 112000; // Fallback rate
   }
 }
 

@@ -166,7 +166,7 @@ export function PaymentsTable({
       payment.description || '',
       payment.customer_email || '',
       new Date(payment.created * 1000).toLocaleString(),
-      payment.transaction_hash || ''
+      payment.tx_id || ''
     ]);
 
     // Combine headers and rows
