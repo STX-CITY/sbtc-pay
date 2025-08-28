@@ -48,8 +48,35 @@ export function formatPaymentIntentResponse(paymentIntent: any) {
 }
 
 export async function getExchangeRate(): Promise<number> {
-  // For now, return a mock rate. In production, this would call CoinGecko or similar API
-  return 98500.00; // 1 BTC = $98,500 USD
+  try {
+    const response = await fetch(
+      'https://pro-api.coingecko.com/api/v3/simple/price?x_cg_pro_api_key=CG-55DqkovG5Q5TTmM5gaf86oZt&ids=bitcoin,blockstack&vs_currencies=usd',
+      {
+        headers: {
+          'Accept': 'application/json',
+        },
+        // Cache for 5 minutes to avoid hitting rate limits
+        next: { revalidate: 300 }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`CoinGecko API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const bitcoinPrice = data.bitcoin?.usd;
+
+    if (!bitcoinPrice || typeof bitcoinPrice !== 'number') {
+      throw new Error('Invalid Bitcoin price data from CoinGecko');
+    }
+
+    return bitcoinPrice;
+  } catch (error) {
+    console.error('Error fetching exchange rate from CoinGecko:', error);
+    // Fallback to a reasonable default if API fails
+    return 98500.00; // Fallback rate
+  }
 }
 
 export function convertUsdToSbtc(usdAmount: number, exchangeRate: number): number {
