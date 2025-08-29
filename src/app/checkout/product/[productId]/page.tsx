@@ -28,6 +28,7 @@ export default function ProductCheckoutPage({
   const [productId, setProductId] = useState<string | null>(null);
   const [urlEmail, setUrlEmail] = useState<string | null>(null);
   const [urlMetadata, setUrlMetadata] = useState<Record<string, any> | null>(null);
+  const [linkCode, setLinkCode] = useState<string | null>(null);
 
   useEffect(() => {
     const getParams = async () => {
@@ -39,6 +40,7 @@ export default function ProductCheckoutPage({
     // Parse URL parameters
     const email = searchParams.get('email');
     const metadataParam = searchParams.get('metadata');
+    const linkCodeParam = searchParams.get('link_code');
     
     if (email) {
       setUrlEmail(email);
@@ -52,6 +54,10 @@ export default function ProductCheckoutPage({
         console.error('Failed to parse metadata from URL:', e);
       }
     }
+    
+    if (linkCodeParam) {
+      setLinkCode(linkCodeParam);
+    }
   }, [params, searchParams]);
 
   useEffect(() => {
@@ -64,6 +70,39 @@ export default function ProductCheckoutPage({
     if (!productId) return;
     
     try {
+      // Track payment link usage if link_code is present
+      if (linkCode) {
+        const trackResponse = await fetch('/api/v1/payment-links/track', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            link_code: linkCode,
+            product_id: productId
+          })
+        });
+
+        if (trackResponse.ok) {
+          const trackData = await trackResponse.json();
+          
+          // If tracking found a payment link, merge its data
+          if (trackData.tracked && trackData.email && !urlEmail) {
+            setUrlEmail(trackData.email);
+          }
+          if (trackData.tracked && trackData.metadata) {
+            setUrlMetadata(prev => ({ ...trackData.metadata, ...prev }));
+          }
+        } else {
+          const errorData = await trackResponse.json();
+          if (errorData.error?.type === 'expired_link' || errorData.error?.type === 'invalid_link') {
+            setError(errorData.error.message);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       // First fetch the product (public endpoint)
       const productResponse = await fetch(`/api/v1/public/products/${productId}`);
       

@@ -93,9 +93,14 @@ export default function PaymentLinksPage() {
     setShowQRCode(true);
   };
 
-  const copyLink = (productId: string, email?: string, metadata?: Record<string, any>, linkId?: string) => {
+  const copyLink = (productId: string, email?: string, metadata?: Record<string, any>, linkId?: string, linkCode?: string) => {
     const baseUrl = `${window.location.origin}/checkout/product/${productId}`;
     const params = new URLSearchParams();
+    
+    // Add link_code for tracking
+    if (linkCode) {
+      params.append('link_code', linkCode);
+    }
     
     if (email) {
       params.append('email', email);
@@ -492,7 +497,7 @@ export default function PaymentLinksPage() {
 
                     <div className="ml-4 flex flex-col space-y-2">
                       <button
-                        onClick={() => copyLink(link.product_id, link.email, link.metadata, link.id)}
+                        onClick={() => copyLink(link.product_id, link.email, link.metadata, link.id, link.link_code)}
                         className={`px-3 py-1 text-sm rounded transition-all ${
                           copiedLinkId === link.id
                             ? 'bg-green-50 text-green-600'
