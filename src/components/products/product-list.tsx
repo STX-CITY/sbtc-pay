@@ -86,14 +86,22 @@ export function ProductList() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete product');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to delete product');
       }
 
-      // Remove from list
-      setProducts(products.filter(p => p.id !== productId));
+      const data = await response.json();
+      
+      // Check if deletion was successful
+      if (data.deleted === true) {
+        // Remove from list
+        setProducts(products.filter(p => p.id !== productId));
+      } else {
+        throw new Error('Failed to delete product');
+      }
     } catch (err) {
       console.error('Error deleting product:', err);
-      alert('Failed to delete product');
+      alert(err instanceof Error ? err.message : 'Failed to delete product');
     }
   };
 

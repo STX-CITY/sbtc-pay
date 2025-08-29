@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db, products } from '@/lib/db';
+import { db, products, paymentIntents } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
 import { eq, and } from 'drizzle-orm';
 import { getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
@@ -196,6 +196,45 @@ export async function DELETE(
       );
     }
 
+    // Check if product exists and belongs to merchant
+    const [existingProduct] = await db
+      .select()
+      .from(products)
+      .where(
+        and(
+          eq(products.id, id),
+          eq(products.merchantId, auth.merchantId)
+        )
+      )
+      .limit(1);
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: { type: 'resource_missing', message: 'Product not found' } },
+        { status: 404 }
+      );
+    }
+
+    // Check if product has any payment intents
+    const [paymentIntent] = await db
+      .select({ id: paymentIntents.id })
+      .from(paymentIntents)
+      .where(eq(paymentIntents.productId, id))
+      .limit(1);
+
+    if (paymentIntent) {
+      return NextResponse.json(
+        { 
+          error: { 
+            type: 'invalid_request_error', 
+            message: 'Cannot delete product with existing payment intents. Please archive the product instead by setting it to inactive.' 
+          } 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Now safe to delete
     const [deletedProduct] = await db
       .delete(products)
       .where(
