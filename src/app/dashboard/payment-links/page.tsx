@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getAuthHeaders } from '@/lib/auth/client';
-import { formatSBTCAmount } from '@/lib/stacks/sbtc';
 import { ProductDropdown } from '@/components/dashboard/product-dropdown';
 import { CheckoutPreview } from '@/components/dashboard/checkout-preview';
 import { Product } from '@/types/products';
