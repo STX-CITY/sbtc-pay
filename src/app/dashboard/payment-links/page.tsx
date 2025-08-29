@@ -86,10 +86,59 @@ export default function PaymentLinksPage() {
     return finalUrl;
   };
 
-  const handleGenerateLink = () => {
+  const handleGenerateLink = async () => {
     const link = generatePaymentLink();
     setGeneratedLink(link);
     setShowQRCode(true);
+    
+    // Save the payment link to the database
+    if (selectedProduct) {
+      await savePaymentLink(link);
+    }
+  };
+  
+  const savePaymentLink = async (linkUrl: string) => {
+    try {
+      const validMetadata = customFields.filter(field => field.key && field.value);
+      const metadataObj: Record<string, string> = {};
+      validMetadata.forEach(field => {
+        metadataObj[field.key] = field.value;
+      });
+
+      const response = await fetch('/api/v1/payment-links', {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          product_id: selectedProduct!.id,
+          product_name: selectedProduct!.name,
+          email: customerEmail || undefined,
+          metadata: Object.keys(metadataObj).length > 0 ? metadataObj : undefined,
+          generated_url: linkUrl
+        })
+      });
+
+      if (response.ok) {
+        const savedLink = await response.json();
+        // Update the generated link to include the link_code for tracking
+        if (savedLink.link_code) {
+          const urlWithCode = new URL(linkUrl);
+          urlWithCode.searchParams.append('link_code', savedLink.link_code);
+          setGeneratedLink(urlWithCode.toString());
+        }
+        // Refresh the payment links list
+        await fetchPaymentLinks();
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to save payment link:', errorData);
+        alert('Failed to save payment link: ' + (errorData.error?.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving payment link:', error);
+      alert('Error saving payment link: ' + error);
+    }
   };
 
   const copyLink = (productId: string, email?: string, metadata?: Record<string, any>, linkId?: string, linkCode?: string) => {
@@ -333,9 +382,10 @@ export default function PaymentLinksPage() {
                     <div className="flex space-x-2">
                       <button
                         onClick={handleGenerateLink}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium disabled:opacity-50"
+                        disabled={!selectedProduct}
                       >
-                        Generate Link
+                        Generate & Save Link
                       </button>
                       <button
                         onClick={resetGenerator}

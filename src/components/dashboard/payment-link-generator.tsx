@@ -75,23 +75,38 @@ export function PaymentLinkGenerator({ product, isOpen, onClose }: PaymentLinkGe
   };
 
   const handleGenerateLink = async () => {
-    generateLink();
-    setIsGenerated(true);
-    setShowQRCode(true);
+    // Generate the link URL first
+    const baseUrl = `${window.location.origin}/checkout/product/${product.id}`;
+    const params = new URLSearchParams();
     
-    // Save the link to the backend
-    await savePaymentLink();
-  };
-
-  const savePaymentLink = async () => {
-    setIsSaving(true);
-    try {
-      const validMetadata = metadataFields.filter(field => field.key && field.value);
-      const metadataObj: Record<string, string> = {};
+    if (email) {
+      params.append('email', email);
+    }
+    
+    // Add metadata fields to URL
+    const validMetadata = metadataFields.filter(field => field.key && field.value);
+    const metadataObj: Record<string, string> = {};
+    if (validMetadata.length > 0) {
       validMetadata.forEach(field => {
         metadataObj[field.key] = field.value;
       });
+      params.append('metadata', JSON.stringify(metadataObj));
+    }
+    
+    const finalUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+    
+    // Set the generated link
+    setGeneratedLink(finalUrl);
+    setIsGenerated(true);
+    setShowQRCode(true);
+    
+    // Save the link to the backend with the correct URL
+    await savePaymentLink(finalUrl, metadataObj);
+  };
 
+  const savePaymentLink = async (linkUrl: string, metadataObj: Record<string, string>) => {
+    setIsSaving(true);
+    try {
       const response = await fetch('/api/v1/payment-links', {
         method: 'POST',
         headers: {
@@ -103,15 +118,18 @@ export function PaymentLinkGenerator({ product, isOpen, onClose }: PaymentLinkGe
           product_name: product.name,
           email: email || undefined,
           metadata: Object.keys(metadataObj).length > 0 ? metadataObj : undefined,
-          generated_url: generatedLink
+          generated_url: linkUrl
         })
       });
 
       if (!response.ok) {
-        console.error('Failed to save payment link');
+        const errorData = await response.json();
+        console.error('Failed to save payment link:', errorData);
+        alert('Failed to save payment link: ' + (errorData.error?.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error saving payment link:', error);
+      alert('Error saving payment link: ' + error);
     } finally {
       setIsSaving(false);
     }
