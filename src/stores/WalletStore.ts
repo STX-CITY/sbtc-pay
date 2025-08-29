@@ -109,22 +109,32 @@ const useWalletStore = create(
                 
                 // Try to get addresses from parsed local data
                 if (parsedData && parsedData.stx && parsedData.stx.length > 0) {
-                  // Use the first STX address
-                  const stxAddress = parsedData.stx[0];
-                  
-                  // Determine if it's mainnet or testnet based on prefix
-                  if (stxAddress.startsWith('SP')) {
-                    mainnetAddress = stxAddress;
-                  } else if (stxAddress.startsWith('ST')) {
-                    testnetAddress = stxAddress;
-                  }
+                  // Check all STX addresses to find both mainnet and testnet
+                  parsedData.stx.forEach((stxAddress: string) => {
+                    if (stxAddress.startsWith('SP')) {
+                      mainnetAddress = stxAddress;
+                    } else if (stxAddress.startsWith('ST')) {
+                      testnetAddress = stxAddress;
+                    }
+                  });
                 }
                 
                 // Fallback to data from connection response
-                if (!mainnetAddress && !testnetAddress && data.authResponse?.profile?.stxAddress) {
-                  mainnetAddress = data.authResponse.profile.stxAddress.mainnet || '';
-                  testnetAddress = data.authResponse.profile.stxAddress.testnet || '';
+                if (data.authResponse?.profile?.stxAddress) {
+                  if (!mainnetAddress && data.authResponse.profile.stxAddress.mainnet) {
+                    mainnetAddress = data.authResponse.profile.stxAddress.mainnet;
+                  }
+                  if (!testnetAddress && data.authResponse.profile.stxAddress.testnet) {
+                    testnetAddress = data.authResponse.profile.stxAddress.testnet;
+                  }
                 }
+                
+                console.log('Address detection:', { 
+                  networkType, 
+                  mainnetAddress, 
+                  testnetAddress,
+                  parsedData: parsedData?.stx 
+                });
                 
                 const newUserData: UserData = {
                   profile: {
@@ -141,9 +151,61 @@ const useWalletStore = create(
                   userSession: data.userSession
                 };
                 
-                // Set the appropriate address - use whatever address is available
-                // If network is testnet but only mainnet address exists, still set it
-                // This allows the merchant-login component to detect and handle the mismatch
+                // Check for network mismatch only when user has ONLY the wrong network address
+                if (networkType === 'testnet' && mainnetAddress && !testnetAddress) {
+                  console.log('Blocking mainnet wallet on testnet');
+                  alert(
+                    '⚠️ Mainnet Wallet Detected!\n\n' +
+                    'You are connected with a mainnet wallet (address starts with "SP"), but this application is configured for testnet.\n\n' +
+                    'Please:\n' +
+                    '1. Disconnect your current wallet\n' +
+                    '2. Switch to a testnet wallet or create a testnet address\n' +
+                    '3. Reconnect with your testnet wallet\n\n' +
+                    'Testnet addresses start with "ST".'
+                  );
+                  
+                  reject(new Error('Mainnet wallet not supported on testnet'));
+                  return;
+                }
+                
+                if (networkType === 'mainnet' && testnetAddress && !mainnetAddress) {
+                  console.log('Blocking testnet wallet on mainnet');
+                  alert(
+                    '⚠️ Testnet Wallet Detected!\n\n' +
+                    'You are connected with a testnet wallet (address starts with "ST"), but this application is configured for mainnet.\n\n' +
+                    'Please:\n' +
+                    '1. Disconnect your current wallet\n' +
+                    '2. Switch to a mainnet wallet or create a mainnet address\n' +
+                    '3. Reconnect with your mainnet wallet\n\n' +
+                    'Mainnet addresses start with "SP".'
+                  );
+                  
+                  reject(new Error('Testnet wallet not supported on mainnet'));
+                  return;
+                }
+                
+                // If we have no address at all for the current network, show a different message
+                if (networkType === 'testnet' && !testnetAddress && !mainnetAddress) {
+                  alert(
+                    '⚠️ No Address Found!\n\n' +
+                    'No Stacks address was found in your wallet. Please make sure your wallet is properly set up.'
+                  );
+                  
+                  reject(new Error('No address found'));
+                  return;
+                }
+                
+                if (networkType === 'mainnet' && !mainnetAddress && !testnetAddress) {
+                  alert(
+                    '⚠️ No Address Found!\n\n' +
+                    'No Stacks address was found in your wallet. Please make sure your wallet is properly set up.'
+                  );
+                  
+                  reject(new Error('No address found'));
+                  return;
+                }
+
+                // Set the appropriate address
                 let currentAddress = '';
                 if (networkType === 'testnet') {
                   currentAddress = testnetAddress || mainnetAddress;
@@ -195,9 +257,37 @@ const useWalletStore = create(
         
         if (userData) {
           // Update current address based on new network
+          const mainnetAddress = userData.profile.stxAddress.mainnet;
+          const testnetAddress = userData.profile.stxAddress.testnet;
+          
+          // Check for network mismatch only when user has ONLY the wrong network address
+          if (network === 'testnet' && mainnetAddress && !testnetAddress) {
+            console.log('Network change: Disconnecting mainnet-only wallet on testnet');
+            alert(
+              '⚠️ Mainnet Wallet Detected!\n\n' +
+              'You switched to testnet but your connected wallet only has a mainnet address (starts with "SP").\n\n' +
+              'Please disconnect and reconnect with a testnet wallet (address starts with "ST").'
+            );
+            
+            get().disconnectWallet();
+            return;
+          }
+          
+          if (network === 'mainnet' && testnetAddress && !mainnetAddress) {
+            console.log('Network change: Disconnecting testnet-only wallet on mainnet');
+            alert(
+              '⚠️ Testnet Wallet Detected!\n\n' +
+              'You switched to mainnet but your connected wallet only has a testnet address (starts with "ST").\n\n' +
+              'Please disconnect and reconnect with a mainnet wallet (address starts with "SP").'
+            );
+            
+            get().disconnectWallet();
+            return;
+          }
+          
           const newAddress = network === 'mainnet' 
-            ? userData.profile.stxAddress.mainnet 
-            : userData.profile.stxAddress.testnet;
+            ? mainnetAddress 
+            : testnetAddress;
           
           set({ currentAddress: newAddress });
           
