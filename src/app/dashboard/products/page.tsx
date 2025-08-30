@@ -1,3 +1,5 @@
+'use client';
+
 import { ProductList } from '@/components/products/product-list';
 import { ErrorBoundary } from '@/components/error-boundary';
 

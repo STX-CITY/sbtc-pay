@@ -1,3 +1,5 @@
+'use client';
+
 import { ProductForm } from '@/components/products/product-form';
 import { ErrorBoundary } from '@/components/error-boundary';
 
