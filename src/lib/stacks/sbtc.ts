@@ -1,6 +1,8 @@
 import { request } from '@stacks/connect';
 import {
-  Cl  
+  Cl,  
+  Pc,  
+  PostCondition
 } from '@stacks/transactions';
 import { SBTC_CONTRACT, getCurrentNetwork, type NetworkType, MICROUNITS_PER_SBTC } from './config';
 import { fetchBlockHeight } from './blockheight';
@@ -45,12 +47,13 @@ export const transferSBTC = async ({
     }
 
     // Create the asset string for sBTC
-    const assetString = `${contractConfig.address}.${contractConfig.name}::sbtc`;
+    const assetString = validateAndUseString(`${contractConfig.address}.${contractConfig.name}`)
 
     // Create post conditions to ensure the exact amount is transferred
-    // const postConditions: PostCondition[] = [
-    //   Pc.principal(sender).willSendEq(amount).ft(assetString, 0)
-    // ];
+    const postConditions: PostCondition[] = [
+      Pc.principal(sender).willSendLte(amount).ft(assetString, "sBTC"),
+      Pc.principal(sender).willSendEq(0).ustx()
+    ];
 
     console.log('Initiating sBTC transfer:', {
       contractAddress: contractConfig.address,
@@ -62,6 +65,7 @@ export const transferSBTC = async ({
       network
     });
 
+    debugger;
     
     
     // Use request API for contract call
@@ -190,3 +194,8 @@ export const formatSBTCAmount = (microsBTCAmount: number, decimals: number = 8):
   const sbtcAmount = microsBTCToSBTC(microsBTCAmount);
   return sbtcAmount.toFixed(decimals);
 };
+
+function validateAndUseString(inputString: string): `${string}.${string}` {
+  const parts = inputString.split('.');
+  return inputString as `${string}.${string}`;
+}
