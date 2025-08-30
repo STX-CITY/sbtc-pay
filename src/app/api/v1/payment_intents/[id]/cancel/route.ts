@@ -60,7 +60,12 @@ export async function POST(
 
     // Send webhook event for payment_intent.canceled
     const webhookData = formatPaymentIntentResponse(canceledPaymentIntent);
-    await createWebhookEvent(auth.merchantId, 'payment_intent.canceled', webhookData);
+    try {
+      await createWebhookEvent(auth.merchantId, 'payment_intent.canceled', webhookData);
+    } catch (webhookError) {
+      console.error('Failed to send payment_intent.canceled webhook:', webhookError);
+      // Continue without failing the request
+    }
 
     return NextResponse.json(webhookData);
   } catch (error) {

@@ -52,7 +52,8 @@ export async function createWebhookEvent(
   }
 
   if (targetEndpoints.length === 0) {
-    console.log(`No active webhook endpoints found for merchant ${merchantId} and event ${eventType}`);
+    // Silently return empty array when no webhook endpoints are configured
+    // This is a normal case when merchants haven't set up webhooks
     return [];
   }
 
@@ -240,8 +241,17 @@ async function deliverLegacyWebhook(eventId: string): Promise<boolean> {
     const merchant = merchantQuery[0];
 
     if (!merchant?.webhookUrl) {
-      console.log('No legacy webhook URL configured for event:', eventId);
-      return false;
+      // Silently skip when no webhook URL is configured
+      // Mark as delivered since there's nowhere to send it
+      await db.update(webhookEvents)
+        .set({
+          delivered: true,
+          attempts: 1,
+          lastAttemptedAt: new Date(),
+          responseBody: 'No webhook URL configured'
+        })
+        .where(eq(webhookEvents.id, eventId));
+      return true;
     }
 
     const signature = generateWebhookSignature(

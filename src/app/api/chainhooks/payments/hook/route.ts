@@ -211,8 +211,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                       .where(eq(paymentIntents.id, paymentIntent.id));
 
                   // Send webhook notification
-                  const webhookData = formatPaymentIntentResponse(paymentIntent);
-                  await createWebhookEvent(paymentIntent.merchantId, 'payment_intent.failed', webhookData);
+                  try {
+                    const webhookData = formatPaymentIntentResponse(paymentIntent);
+                    await createWebhookEvent(paymentIntent.merchantId, 'payment_intent.failed', webhookData);
+                  } catch (webhookError) {
+                    console.error('Failed to send payment_intent.failed webhook:', webhookError);
+                    // Continue without failing the request
+                  }
               }
 
               // Delete chainhook after processing

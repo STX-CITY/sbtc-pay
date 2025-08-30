@@ -65,7 +65,12 @@ export async function POST(
 
     // Create webhook event for payment_intent.failed
     const webhookData = formatPaymentIntentResponse(updatedPaymentIntent);
-    await createWebhookEvent(auth.merchantId, 'payment_intent.failed', webhookData);
+    try {
+      await createWebhookEvent(auth.merchantId, 'payment_intent.failed', webhookData);
+    } catch (webhookError) {
+      console.error('Failed to send payment_intent.failed webhook:', webhookError);
+      // Continue without failing the request
+    }
 
     return NextResponse.json({
       ...webhookData,
