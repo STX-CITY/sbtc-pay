@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { CheckoutForm } from '@/components/checkout/checkout-form';
 import { PaymentStatus } from '@/components/checkout/payment-status';
+import { headers } from 'next/headers';
+import { getRandomHeader } from '@/lib/utils/headers';
 
 interface CheckoutPageProps {
   params: Promise<{ id: string }>;
@@ -69,7 +71,7 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
         ? `https://api.testnet.hiro.so/extended/v1/tx/${txId}`
         : `https://api.testnet.hiro.so/extended/v1/tx/${txId}`;
 
-      const response = await fetch(apiUrl);
+      const response = await fetch(apiUrl,  { headers: getRandomHeader() } );
       if (!response.ok) {
         console.error('Failed to fetch transaction status from Hiro');
         return null;
