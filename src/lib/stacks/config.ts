@@ -9,7 +9,7 @@ export type NetworkType = 'mainnet' | 'testnet' | 'mocknet';
 // sBTC Contract Details 
 export const SBTC_CONTRACT = {
   mainnet: {
-    address: 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR', // Actual mainnet address
+    address: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4',
     name: 'sbtc-token'
   },
   testnet: {
