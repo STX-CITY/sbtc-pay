@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuthHeaders } from '@/lib/auth/client';
 
@@ -15,6 +15,7 @@ export function ProductForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
@@ -23,34 +24,103 @@ export function ProductForm() {
   });
   const [imageInput, setImageInput] = useState('');
 
+  // Ensure component is mounted before accessing client-side APIs
+  useEffect(() => {
+    setMounted(true);
+    
+    // Log environment info for debugging
+    if (typeof window !== 'undefined') {
+      console.log('ProductForm mounted:', {
+        hostname: window.location.hostname,
+        pathname: window.location.pathname,
+        hasLocalStorage: typeof localStorage !== 'undefined',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Check if auth is available
+      try {
+        const hasAuth = localStorage.getItem('api_key') !== null;
+        console.log('Auth status:', hasAuth);
+        if (!hasAuth) {
+          console.warn('No API key found in localStorage');
+        }
+      } catch (err) {
+        console.error('Error checking auth:', err);
+      }
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted, starting product creation...');
     setLoading(true);
     setError(null);
 
     try {
+      // Get auth headers with error handling
+      let headers: Record<string, string>;
+      try {
+        headers = getAuthHeaders();
+        console.log('Auth headers obtained successfully');
+      } catch (authError) {
+        console.error('Failed to get auth headers:', authError);
+        setError('Authentication required. Please login again.');
+        setLoading(false);
+        // Redirect to login after a delay
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+        return;
+      }
+
+      const requestBody = {
+        name: formData.name,
+        description: formData.description,
+        price_usd: parseFloat(formData.price_usd),
+        type: 'one_time',
+        images: formData.images.filter(img => img.length > 0),
+        active: true
+      };
+
+      console.log('Sending product creation request:', {
+        url: '/api/v1/products',
+        body: requestBody
+      });
+
       const response = await fetch('/api/v1/products', {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          price_usd: parseFloat(formData.price_usd),
-          type: 'one_time',
-          images: formData.images.filter(img => img.length > 0),
-          active: true
-        })
+        headers,
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('Response received:', {
+        status: response.status,
+        ok: response.ok
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Failed to create product');
+        const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
+        console.error('Product creation failed:', errorData);
+        throw new Error(errorData.error?.message || `Failed to create product (${response.status})`);
       }
 
       const product = await response.json();
+      console.log('Product created successfully:', product.id);
       router.push(`/dashboard/products/${product.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create product');
+      console.error('Error in handleSubmit:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create product';
+      setError(errorMessage);
+      
+      // Log detailed error info for production debugging
+      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        console.error('Production error details:', {
+          error: errorMessage,
+          stack: err instanceof Error ? err.stack : undefined,
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -72,6 +142,19 @@ export function ProductForm() {
       images: prev.images.filter((_, i) => i !== index)
     }));
   };
+
+  // Don't render until mounted to avoid hydration issues
+  if (!mounted) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-10 bg-gray-200 rounded mb-4"></div>
+          <div className="h-20 bg-gray-200 rounded mb-4"></div>
+          <div className="h-10 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

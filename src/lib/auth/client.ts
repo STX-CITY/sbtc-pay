@@ -5,7 +5,13 @@
  */
 export function getStoredApiKey(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('api_key');
+  
+  try {
+    return localStorage.getItem('api_key');
+  } catch (error) {
+    console.error('Failed to access localStorage:', error);
+    return null;
+  }
 }
 
 /**
@@ -13,7 +19,13 @@ export function getStoredApiKey(): string | null {
  */
 export function getStoredMerchantId(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('merchant_id');
+  
+  try {
+    return localStorage.getItem('merchant_id');
+  } catch (error) {
+    console.error('Failed to access localStorage:', error);
+    return null;
+  }
 }
 
 /**
@@ -42,16 +54,22 @@ export function createAuthenticatedFetch() {
  * Get authentication headers for API requests
  */
 export function getAuthHeaders(): Record<string, string> {
-  const apiKey = getStoredApiKey();
-  
-  if (!apiKey) {
-    throw new Error('No API key found. Please login again.');
-  }
+  try {
+    const apiKey = getStoredApiKey();
+    
+    if (!apiKey) {
+      console.error('No API key found in localStorage');
+      throw new Error('No API key found. Please login again.');
+    }
 
-  return {
-    'Authorization': `Bearer ${apiKey}`,
-    'Content-Type': 'application/json'
-  };
+    return {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    };
+  } catch (error) {
+    console.error('Error in getAuthHeaders:', error);
+    throw error;
+  }
 }
 
 /**
