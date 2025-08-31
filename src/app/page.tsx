@@ -406,7 +406,7 @@ export default function LandingPage() {
             >
               <h2 className="text-4xl font-bold text-gray-900 mb-6">
                 Built for developers, 
-                <span className="text-blue-600">loved by businesses</span>
+                <span className="text-blue-600"> loved by businesses</span>
               </h2>
               <p className="text-lg text-gray-600 mb-8">
                 Our RESTful API and comprehensive SDKs make integration straightforward, 
@@ -447,25 +447,39 @@ export default function LandingPage() {
                 </div>
               </div>
               
-              <div className="mt-8 flex flex-wrap gap-4">
+              <div className="mt-8 flex flex-col sm:flex-row gap-4 sm:gap-3 justify-center items-center">
                 <Link 
                   href="/docs#api"
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white font-semibold rounded-xl shadow-xl hover:shadow-2xl hover:from-blue-700 hover:via-blue-800 hover:to-blue-900 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 border border-blue-500/20"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
-                  Explore API Docs
+                  <span className="text-sm sm:text-base">Explore API Docs</span>
                 </Link>
                 <Link 
                   href="/docs"
-                  className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-900 font-semibold rounded-lg hover:bg-gray-200 transition-all"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-4 bg-white text-gray-700 font-semibold rounded-xl shadow-lg hover:shadow-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                   </svg>
-                  View Integration Guide
+                  <span className="text-sm sm:text-base">Integration Guide</span>
                 </Link>
+                <a 
+                  href="https://demo.sbtcpay.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white font-semibold rounded-xl shadow-xl hover:shadow-2xl hover:from-indigo-700 hover:via-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 border border-indigo-500/20"
+                >
+                  <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span className="text-sm sm:text-base">Demo Project</span>
+                  <svg className="w-4 h-4 ml-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
               </div>
             </motion.div>
             
@@ -482,23 +496,38 @@ export default function LandingPage() {
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
               </div>
               <pre className="text-green-400 text-sm overflow-x-auto">
-{`// Create a payment intent
-const paymentIntent = await sbtcPay
-  .paymentIntents.create({
-    amount: 2999,
-    currency: 'usd',
+{`// Create a payment link
+const response = await fetch('/api/v1/payment_links', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_test_...',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
     product_id: 'prod_123',
-    customer_email: 'user@example.com'
-  });
+    email: 'customer@example.com',
+    metadata: {
+      order_id: 'order_456',
+      customer_name: 'John Doe'
+    },
+    expires_at: '2024-12-31T23:59:59Z'
+  })
+});
+
+const paymentLink = await response.json();
+console.log('Payment URL:', paymentLink.payment_link_url);
 
 // Handle webhook events
 app.post('/webhooks', (req, res) => {
   const event = JSON.parse(req.body);
   
   if (event.type === 'payment.succeeded') {
-    // Fulfill the order
-    fulfillOrder(event.data.object);
+    // Access custom metadata
+    const metadata = event.data.payment_link_metadata;
+    fulfillOrder(event.data.object, metadata);
   }
+  
+  res.status(200).send('OK');
 });`}
               </pre>
             </motion.div>
