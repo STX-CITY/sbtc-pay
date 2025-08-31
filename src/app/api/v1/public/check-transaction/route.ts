@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, paymentIntents, merchants } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { getCurrentNetwork } from '@/lib/stacks/config';
+import { getRandomHeader } from '@/lib/utils/headers';
 
 interface TransactionResult {
   tx: {
@@ -103,12 +104,12 @@ export async function POST(request: NextRequest) {
     // Get network configuration
     const network = getCurrentNetwork();
     const apiUrl = network === 'mainnet' 
-      ? 'https://api.hiro.so'
+      ? 'https://api.testnet.hiro.so'
       : 'https://api.testnet.hiro.so';
 
     // Query recent transactions for recipient address
     const transactionsUrl = `${apiUrl}/extended/v2/addresses/${recipientAddress}/transactions?limit=20`;
-    const response = await fetch(transactionsUrl);
+    const response = await fetch(transactionsUrl, {headers: getRandomHeader()});
 
     if (!response.ok) {
       throw new Error('Failed to fetch transactions from Hiro API');
