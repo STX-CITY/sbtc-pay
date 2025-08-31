@@ -24,6 +24,66 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     console.log('[Customers API] Query params - limit:', limit, 'offset:', offset);
 
+    // First, let's check what payment intents exist for this merchant (for debugging)
+    console.log('[Customers API] Checking all payment intents for merchant...');
+    const allPayments = await db
+      .select({
+        id: paymentIntents.id,
+        status: paymentIntents.status,
+        txId: paymentIntents.txId,
+        customerAddress: paymentIntents.customerAddress,
+        customerEmail: paymentIntents.customerEmail,
+        amount: paymentIntents.amount
+      })
+      .from(paymentIntents)
+      .where(eq(paymentIntents.merchantId, auth.merchantId))
+      .limit(10);
+    
+    console.log('[Customers API] All payments for merchant:', allPayments.length);
+    console.log('[Customers API] All payments data:', allPayments);
+    
+    // Now check each condition separately
+    const paymentsWithMerchant = await db
+      .select({
+        id: paymentIntents.id,
+        status: paymentIntents.status,
+        txId: paymentIntents.txId
+      })
+      .from(paymentIntents)
+      .where(eq(paymentIntents.merchantId, auth.merchantId));
+    console.log('[Customers API] Payments for merchant:', paymentsWithMerchant.length);
+    
+    const succeededPayments = await db
+      .select({
+        id: paymentIntents.id,
+        status: paymentIntents.status,
+        txId: paymentIntents.txId
+      })
+      .from(paymentIntents)
+      .where(
+        and(
+          eq(paymentIntents.merchantId, auth.merchantId),
+          eq(paymentIntents.status, 'succeeded')
+        )
+      );
+    console.log('[Customers API] Succeeded payments for merchant:', succeededPayments.length);
+    console.log('[Customers API] Succeeded payments data:', succeededPayments);
+    
+    const paymentsWithTxId = await db
+      .select({
+        id: paymentIntents.id,
+        status: paymentIntents.status,
+        txId: paymentIntents.txId
+      })
+      .from(paymentIntents)
+      .where(
+        and(
+          eq(paymentIntents.merchantId, auth.merchantId),
+          isNotNull(paymentIntents.txId)
+        )
+      );
+    console.log('[Customers API] Payments with txId for merchant:', paymentsWithTxId.length);
+
     // Get successful payment intents with customer data, product names, and payment link metadata
     console.log('[Customers API] Executing database query for successful payments');
     const successfulPayments = await db
