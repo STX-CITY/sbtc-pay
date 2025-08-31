@@ -62,8 +62,11 @@ export async function GET(
       );
     }
 
+    console.log(`results ${result}`)
+
     const { paymentIntent, merchantStacksAddress, merchantRecipientAddress, merchantRedirectUrl, merchantName } = result[0];
-    
+
+    console.log(`paymentIntent ${paymentIntent}`)
     // If payment has a tx_id and status is pending, re-check with Hiro API
     // This is a fallback in case chainhook has an error
     let effectiveStatus = paymentIntent.status;
