@@ -84,7 +84,7 @@ export const transferSBTC = async ({
 
     const txCorrectFormat = response.txid?.startsWith('0x') ? response.txid : `0x${response.txid}`;
 
-    // Update the payment intent with the tx id
+    // Update the payment intent with the tx id, there is no status yet.
     if (response.txid) {
       try {
         const apiKey = process.env.NEXT_PUBLIC_TEST_API_KEY || 'test_key';
@@ -99,10 +99,41 @@ export const transferSBTC = async ({
             tx_id: txCorrectFormat
           })
         });
-        debugger;
         
         if (updateResponse.ok) {
           console.log(`Updated payment intent ${paymentIntentId} with transaction ID: ${response.txid}`);
+          
+          // Start polling to check transaction status
+          const checkTransactionStatus = async () => {
+            try {
+              const statusResponse = await fetch('/api/v1/public/check-transaction', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ paymentIntentId })
+              });
+              
+              if (statusResponse.ok) {
+                const statusData = await statusResponse.json();
+                console.log(`Transaction status for ${paymentIntentId}:`, statusData.status);
+                
+                // If transaction is still pending, continue polling
+                if (statusData.status === 'pending') {
+                  setTimeout(checkTransactionStatus, 5000); // Poll every 5 seconds
+                } else if (statusData.status === 'succeeded') {
+                  console.log(`Payment ${paymentIntentId} confirmed successfully`);
+                }
+              } else {
+                console.error('Failed to check transaction status:', statusResponse.statusText);
+              }
+            } catch (error) {
+              console.error('Error checking transaction status:', error);
+            }
+          };
+          
+          // Start polling after a short delay to allow transaction to propagate
+          setTimeout(checkTransactionStatus, 3000);
         } else {
           console.error('Failed to update payment intent with transaction ID:', updateResponse.statusText);
         }
