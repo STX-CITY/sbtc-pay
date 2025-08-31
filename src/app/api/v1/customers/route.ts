@@ -3,11 +3,12 @@ import { db, paymentIntents, products, paymentLinks } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
+export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     console.log('[Customers API] Starting GET request');
     console.log('[Customers API] Request URL:', request.url);
-    console.log('[Customers API] Request headers:', Object.fromEntries(request.headers.entries()));
+    
     
     const auth = await authenticateRequest(request);
     if (!auth) {
