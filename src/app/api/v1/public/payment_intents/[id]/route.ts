@@ -5,7 +5,7 @@ import { createWebhookEvent } from '@/lib/webhooks/sender';
 import { eq } from 'drizzle-orm';
 import { getRandomHeader } from '@/lib/utils/headers';
 
-
+export const revalidate = 0;
 // Check transaction status from Hiro API
 async function checkTransactionStatus(txId: string): Promise<'pending' | 'succeeded' | 'failed' | null> {
   try {
@@ -39,7 +39,8 @@ export async function GET(
   try {
     const { id: paymentIntentId } = await params;
 
-    console.log('inside the /api/v1/public/payment_intents/')
+    console.log(`inside the /api/v1/public/payment_intents/${paymentIntentId}`)
+  
 
     // Join with merchants to get the recipient address and redirect info
     const result = await db
@@ -82,8 +83,8 @@ export async function GET(
     const paymentIntent = result[0];
 
     console.log(`paymentIntent ${JSON.stringify(paymentIntent)}`)
-    console.log(`paymentIntent.txId ${paymentIntent.txId}`)
-    console.log(`paymentIntent.status ${paymentIntent.status}`)
+    console.log(`paymentIntent.txId: ${paymentIntent.txId} (${paymentIntent.txId === null ? 'null - no transaction yet' : 'has transaction'})`)
+    console.log(`paymentIntent.status: ${paymentIntent.status}`)
     // If payment has a tx_id and status is pending, re-check with Hiro API
     // This is a fallback in case chainhook has an error
     let effectiveStatus = paymentIntent.status;
