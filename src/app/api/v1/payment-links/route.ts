@@ -14,6 +14,7 @@ const createPaymentLinkSchema = z.object({
   expires_at: z.string().optional()
 });
 
+export const revalidate = 0;
 // GET /api/v1/payment-links - Fetch payment links
 export async function GET(request: NextRequest) {
   try {

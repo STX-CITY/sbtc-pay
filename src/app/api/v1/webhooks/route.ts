@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
+export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request);

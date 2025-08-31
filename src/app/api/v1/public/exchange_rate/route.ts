@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getExchangeRate } from '@/lib/payments/utils';
 
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const rate = await getExchangeRate();
