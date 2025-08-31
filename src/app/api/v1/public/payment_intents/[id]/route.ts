@@ -39,6 +39,8 @@ export async function GET(
   try {
     const { id: paymentIntentId } = await params;
 
+    console.log('inside the /api/v1/public/payment_intents/')
+
     // Join with merchants to get the recipient address and redirect info
     const result = await db
       .select({
