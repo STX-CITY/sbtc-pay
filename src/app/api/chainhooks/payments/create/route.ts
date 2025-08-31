@@ -55,22 +55,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         "decode_clarity_values": true,
         "expire_after_occurrence": 1
       },
-      "mainnet": {
-        "if_this": {
-          "scope": "txid",
-          "equals": tx_id
-        },
-        "end_block": null,
-        "then_that": {
-          "http_post": {
-            "url": webhookUrl,
-            "authorization_header": `Bearer ${CHAINHOOK_BEARER}`
-          }
-        },
-        "start_block": startBlock,
-        "decode_clarity_values": true,
-        "expire_after_occurrence": 1
-      }
     }
   };
 
