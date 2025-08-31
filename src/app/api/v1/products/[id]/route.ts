@@ -6,6 +6,8 @@ import { eq, and } from 'drizzle-orm';
 import { getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
 import { createWebhookEvent } from '@/lib/webhooks/sender';
 
+export const revalidate = 0;
+
 const updateProductSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   description: z.string().optional(),

@@ -4,6 +4,7 @@ import { authenticateRequest } from '@/lib/auth/middleware';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     console.log('[Customers API] Starting GET request');
