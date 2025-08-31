@@ -9,10 +9,7 @@ import { getRandomHeader } from '@/lib/utils/headers';
 // Check transaction status from Hiro API
 async function checkTransactionStatus(txId: string): Promise<'pending' | 'succeeded' | 'failed' | null> {
   try {
-    const isMainnet = process.env.NODE_ENV === 'production';
-    const apiUrl = isMainnet 
-      ? `https://api.testnet.hiro.so/extended/v1/tx/${txId}`
-      : `https://api.testnet.hiro.so/extended/v1/tx/${txId}`;
+    const apiUrl = `https://api.testnet.hiro.so/extended/v1/tx/${txId}`;
 
     const response = await fetch(apiUrl, { headers: getRandomHeader() });
     if (!response.ok) {
@@ -69,6 +66,7 @@ export async function GET(
     // This is a fallback in case chainhook has an error
     let effectiveStatus = paymentIntent.status;
     if (paymentIntent.txId && (paymentIntent.status === 'pending' || paymentIntent.status === 'created')) {
+      console.log(`checking transaction ${paymentIntent.txId}`)
       const hiroStatus = await checkTransactionStatus(paymentIntent.txId);
       
       // If Hiro API returns a confirmed status (succeeded or failed), update the database
