@@ -44,7 +44,22 @@ export async function GET(
     // Join with merchants to get the recipient address and redirect info
     const result = await db
       .select({
-        paymentIntent: paymentIntents,
+        id: paymentIntents.id,
+        amount: paymentIntents.amount,
+        amountUsd: paymentIntents.amountUsd,
+        currency: paymentIntents.currency,
+        status: paymentIntents.status,
+        description: paymentIntents.description,
+        customerAddress: paymentIntents.customerAddress,
+        customerEmail: paymentIntents.customerEmail,
+        metadata: paymentIntents.metadata,
+        txId: paymentIntents.txId,
+        receiptUrl: paymentIntents.receiptUrl,
+        sourceLinkId: paymentIntents.sourceLinkId,
+        merchantId: paymentIntents.merchantId,
+        productId: paymentIntents.productId,
+        createdAt: paymentIntents.createdAt,
+        updatedAt: paymentIntents.updatedAt,
         merchantStacksAddress: merchants.stacksAddress,
         merchantRecipientAddress: merchants.recipientAddress,
         merchantRedirectUrl: merchants.checkoutRedirectUrl,
@@ -62,11 +77,11 @@ export async function GET(
       );
     }
 
-    console.log(`results ${result}`)
+    console.log(`results ${JSON.stringify(result)}`)
 
-    const { paymentIntent, merchantStacksAddress, merchantRecipientAddress, merchantRedirectUrl, merchantName } = result[0];
+    const paymentIntent = result[0];
 
-    console.log(`paymentIntent ${paymentIntent}`)
+    console.log(`paymentIntent ${JSON.stringify(paymentIntent)}`)
     console.log(`paymentIntent.txId ${paymentIntent.txId}`)
     console.log(`paymentIntent.status ${paymentIntent.status}`)
     // If payment has a tx_id and status is pending, re-check with Hiro API
@@ -132,10 +147,10 @@ export async function GET(
       status: effectiveStatus, // Use the effective status (may be updated from Hiro API)
       description: paymentIntent.description,
       customer_address: paymentIntent.customerAddress,
-      recipient_address: merchantRecipientAddress || merchantStacksAddress, // Where customer should send payment
+      recipient_address: paymentIntent.merchantRecipientAddress || paymentIntent.merchantStacksAddress, // Where customer should send payment
       tx_id: paymentIntent.txId, // Include tx_id if available
-      merchant_redirect_url: merchantRedirectUrl, // Include merchant redirect URL
-      merchant_name: merchantName, // Include merchant name
+      merchant_redirect_url: paymentIntent.merchantRedirectUrl, // Include merchant redirect URL
+      merchant_name: paymentIntent.merchantName, // Include merchant name
       created: Math.floor(paymentIntent.createdAt.getTime() / 1000),
       
       // Include product data from metadata if available
