@@ -39,6 +39,7 @@ export default function ProductDetailsPage({
   }, [resolvedParams.id]);
 
   const fetchProduct = async () => {
+    debugger;
     try {
       const response = await fetch(`/api/v1/products/${resolvedParams.id}`, {
         headers: getAuthHeaders()
