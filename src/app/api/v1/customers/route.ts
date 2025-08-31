@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, paymentIntents, products } from '@/lib/db';
+import { db, paymentIntents, products, paymentLinks } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 100);
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
-    // Get successful payment intents with customer data and product names
+    // Get successful payment intents with customer data, product names, and payment link metadata
     const successfulPayments = await db
       .select({
         customerAddress: paymentIntents.customerAddress,
@@ -28,10 +28,16 @@ export async function GET(request: NextRequest) {
         lastPaymentDate: paymentIntents.updatedAt,
         txId: paymentIntents.txId,
         productId: paymentIntents.productId,
-        productName: products.name
+        productName: products.name,
+        paymentIntentMetadata: paymentIntents.metadata,
+        sourceLinkId: paymentIntents.sourceLinkId,
+        paymentLinkMetadata: paymentLinks.metadata,
+        paymentLinkEmail: paymentLinks.email,
+        paymentLinkCode: paymentLinks.linkCode
       })
       .from(paymentIntents)
       .leftJoin(products, eq(paymentIntents.productId, products.id))
+      .leftJoin(paymentLinks, eq(paymentIntents.sourceLinkId, paymentLinks.id))
       .where(
         and(
           eq(paymentIntents.merchantId, auth.merchantId),
@@ -67,7 +73,12 @@ export async function GET(request: NextRequest) {
           amount_usd: payment.amountUsd ? parseFloat(payment.amountUsd) : undefined,
           product_id: payment.productId,
           product_name: payment.productName,
-          date: Math.floor(payment.lastPaymentDate.getTime() / 1000)
+          date: Math.floor(payment.lastPaymentDate.getTime() / 1000),
+          payment_intent_metadata: payment.paymentIntentMetadata,
+          source_link_id: payment.sourceLinkId,
+          payment_link_metadata: payment.paymentLinkMetadata,
+          payment_link_email: payment.paymentLinkEmail,
+          payment_link_code: payment.paymentLinkCode
         });
       } else {
         customersMap.set(customerId, {
@@ -86,7 +97,12 @@ export async function GET(request: NextRequest) {
             amount_usd: payment.amountUsd ? parseFloat(payment.amountUsd) : undefined,
             product_id: payment.productId,
             product_name: payment.productName,
-            date: Math.floor(payment.lastPaymentDate.getTime() / 1000)
+            date: Math.floor(payment.lastPaymentDate.getTime() / 1000),
+            payment_intent_metadata: payment.paymentIntentMetadata,
+            source_link_id: payment.sourceLinkId,
+            payment_link_metadata: payment.paymentLinkMetadata,
+            payment_link_email: payment.paymentLinkEmail,
+            payment_link_code: payment.paymentLinkCode
           }]
         });
       }

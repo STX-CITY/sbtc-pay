@@ -21,6 +21,11 @@ interface Customer {
     product_id?: string;
     product_name?: string;
     date: number;
+    payment_intent_metadata?: any;
+    source_link_id?: string;
+    payment_link_metadata?: any;
+    payment_link_email?: string;
+    payment_link_code?: string;
   }[];
 }
 
@@ -122,8 +127,24 @@ export function CustomerList() {
                         <div className="text-sm font-medium text-gray-900">
                           {customer.email || customer.address || 'Anonymous'}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {customer.payment_count} payment{customer.payment_count !== 1 ? 's' : ''} • Last: {formatDate(customer.last_payment)}
+                        <div className="flex items-center text-sm text-gray-500">
+                          <span>{customer.payment_count} payment{customer.payment_count !== 1 ? 's' : ''} • Last: {formatDate(customer.last_payment)}</span>
+                          {customer.transactions.some(t => t.source_link_id) && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                              Link Purchase
+                            </span>
+                          )}
+                          {customer.transactions.some(t => t.payment_link_metadata || t.payment_intent_metadata) && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              Metadata
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -158,42 +179,126 @@ export function CustomerList() {
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Transaction History</h4>
                     <div className="space-y-2">
                       {customer.transactions.map((transaction, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                          <div className="flex-1">
-                            <div className="text-xs text-gray-500">
-                              {formatDate(transaction.date)}
+                        <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="text-xs text-gray-500 mb-1">
+                                {formatDate(transaction.date)}
+                              </div>
+                              <div className="text-sm text-gray-900 font-mono">
+                                TX: {transaction.tx_id}
+                              </div>
+                              {transaction.product_id && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Product: {transaction.product_name ? (
+                                    <Link 
+                                      href={`/dashboard/products/${transaction.product_id}`}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                    >
+                                      {transaction.product_name}
+                                    </Link>
+                                  ) : (
+                                    transaction.product_id
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <div className="text-sm text-gray-900">
-                              TX: {transaction.tx_id}
+                            <div className="text-right">
+                              <div className="text-sm font-medium">
+                                {transaction.amount_usd 
+                                  ? `$${transaction.amount_usd.toFixed(2)}`
+                                  : `${formatSBTCAmount(transaction.amount)} sBTC`
+                                }
+                              </div>
+                              {transaction.amount_usd && (
+                                <div className="text-xs text-gray-500">
+                                  ≈ {formatSBTCAmount(transaction.amount)} sBTC
+                                </div>
+                              )}
                             </div>
-                            {transaction.product_id && (
-                              <div className="text-xs text-gray-500">
-                                Product: {transaction.product_name ? (
-                                  <Link 
-                                    href={`/dashboard/products/${transaction.product_id}`}
-                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  >
-                                    {transaction.product_name}
-                                  </Link>
-                                ) : (
-                                  transaction.product_id
+                          </div>
+
+                          {/* Payment Link Information */}
+                          {transaction.source_link_id && (
+                            <div className="mt-3 pt-3 border-t border-gray-300">
+                              <div className="flex items-center mb-2">
+                                <svg className="w-4 h-4 text-indigo-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                                <span className="text-xs font-medium text-indigo-700">Payment Link Purchase</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                {transaction.payment_link_code && (
+                                  <div>
+                                    <span className="text-gray-500">Link Code:</span>
+                                    <span className="ml-1 font-mono text-gray-900">{transaction.payment_link_code}</span>
+                                  </div>
+                                )}
+                                {transaction.payment_link_email && (
+                                  <div>
+                                    <span className="text-gray-500">Link Email:</span>
+                                    <span className="ml-1 text-gray-900">{transaction.payment_link_email}</span>
+                                  </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-medium">
-                              {transaction.amount_usd 
-                                ? `$${transaction.amount_usd.toFixed(2)}`
-                                : `${formatSBTCAmount(transaction.amount)} sBTC`
-                              }
                             </div>
-                            {transaction.amount_usd && (
-                              <div className="text-xs text-gray-500">
-                                ≈ {formatSBTCAmount(transaction.amount)} sBTC
+                          )}
+
+                          {/* Custom Metadata */}
+                          {(transaction.payment_link_metadata || transaction.payment_intent_metadata) && (
+                            <div className="mt-3 pt-3 border-t border-gray-300">
+                              <div className="flex items-center mb-2">
+                                <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span className="text-xs font-medium text-green-700">Custom Metadata</span>
                               </div>
-                            )}
-                          </div>
+                              
+                              {transaction.payment_link_metadata && (
+                                <div className="mb-2">
+                                  <div className="text-xs text-gray-500 mb-1">From Payment Link:</div>
+                                  <div className="bg-white rounded border border-gray-200 p-2">
+                                    {typeof transaction.payment_link_metadata === 'object' ? (
+                                      <div className="space-y-1">
+                                        {Object.entries(transaction.payment_link_metadata).map(([key, value]) => (
+                                          <div key={key} className="flex text-xs">
+                                            <span className="font-medium text-gray-600 min-w-0 flex-shrink-0">{key}:</span>
+                                            <span className="ml-2 text-gray-900 break-words">{String(value)}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <pre className="text-xs text-gray-800 whitespace-pre-wrap font-mono">
+                                        {JSON.stringify(transaction.payment_link_metadata, null, 2)}
+                                      </pre>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {transaction.payment_intent_metadata && (
+                                <div>
+                                  <div className="text-xs text-gray-500 mb-1">From Payment Intent:</div>
+                                  <div className="bg-white rounded border border-gray-200 p-2">
+                                    {typeof transaction.payment_intent_metadata === 'object' ? (
+                                      <div className="space-y-1">
+                                        {Object.entries(transaction.payment_intent_metadata).map(([key, value]) => (
+                                          <div key={key} className="flex text-xs">
+                                            <span className="font-medium text-gray-600 min-w-0 flex-shrink-0">{key}:</span>
+                                            <span className="ml-2 text-gray-900 break-words">{String(value)}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <pre className="text-xs text-gray-800 whitespace-pre-wrap font-mono">
+                                        {JSON.stringify(transaction.payment_intent_metadata, null, 2)}
+                                      </pre>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
