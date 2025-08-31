@@ -65,11 +65,9 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
   // Function to check transaction status from Hiro API
   const checkTransactionStatus = async (txId: string) => {
     try {
-      // Determine network based on environment
-      const isMainnet = process.env.NODE_ENV === 'production';
-      const apiUrl = isMainnet 
-        ? `https://api.testnet.hiro.so/extended/v1/tx/${txId}`
-        : `https://api.testnet.hiro.so/extended/v1/tx/${txId}`;
+      
+      // Determine network based on environment, for now only testnet
+      const apiUrl = `https://api.testnet.hiro.so/extended/v1/tx/${txId}`;
 
       const response = await fetch(apiUrl,  { headers: getRandomHeader() } );
       if (!response.ok) {
@@ -78,6 +76,7 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
       }
 
       const txData = await response.json();
+      debugger;
       
       // Check if transaction status has changed
       if (txData.tx_status === 'success') {

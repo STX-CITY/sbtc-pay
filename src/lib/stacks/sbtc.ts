@@ -132,8 +132,8 @@ export const transferSBTC = async ({
             }
           };
           
-          // Start polling after a short delay to allow transaction to propagate
-          setTimeout(checkTransactionStatus, 3000);
+          // Call immediately
+          checkTransactionStatus();
         } else {
           console.error('Failed to update payment intent with transaction ID:', updateResponse.statusText);
         }
