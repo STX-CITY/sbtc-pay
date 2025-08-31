@@ -5,19 +5,27 @@ import { eq, and, isNotNull } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Customers API] Starting GET request');
+    console.log('[Customers API] Request URL:', request.url);
+    console.log('[Customers API] Request headers:', Object.fromEntries(request.headers.entries()));
+    
     const auth = await authenticateRequest(request);
     if (!auth) {
+      console.log('[Customers API] Authentication failed');
       return NextResponse.json(
         { error: { type: 'authentication_error', message: 'Invalid authentication' } },
         { status: 401 }
       );
     }
+    console.log('[Customers API] Authenticated merchant:', auth.merchantId);
 
     const url = new URL(request.url);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 100);
     const offset = parseInt(url.searchParams.get('offset') || '0');
+    console.log('[Customers API] Query params - limit:', limit, 'offset:', offset);
 
     // Get successful payment intents with customer data, product names, and payment link metadata
+    console.log('[Customers API] Executing database query for successful payments');
     const successfulPayments = await db
       .select({
         customerAddress: paymentIntents.customerAddress,
@@ -48,11 +56,22 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .offset(offset)
       .orderBy(paymentIntents.updatedAt);
+    
+    console.log('[Customers API] Found successful payments:', successfulPayments.length);
+    console.log('[Customers API] Sample payment data:', successfulPayments.length > 0 ? successfulPayments[0] : 'none');
 
     // Group by customer (address or email) and aggregate data
+    console.log('[Customers API] Processing payments to group by customers');
     const customersMap = new Map();
     
-    successfulPayments.forEach(payment => {
+    successfulPayments.forEach((payment, index) => {
+      console.log(`[Customers API] Processing payment ${index + 1}:`, {
+        customerAddress: payment.customerAddress,
+        customerEmail: payment.customerEmail,
+        txId: payment.txId,
+        amount: payment.totalAmount
+      });
+      
       const customerId = payment.customerAddress || payment.customerEmail || `anonymous_${payment.txId}`;
       
       // Skip if neither address nor email is available (anonymous payments)
@@ -80,6 +99,7 @@ export async function GET(request: NextRequest) {
           payment_link_email: payment.paymentLinkEmail,
           payment_link_code: payment.paymentLinkCode
         });
+        console.log(`[Customers API] Updated existing customer ${customerId}, new total: ${existing.total_spent}`);
       } else {
         customersMap.set(customerId, {
           id: customerId,
@@ -105,11 +125,16 @@ export async function GET(request: NextRequest) {
             payment_link_code: payment.paymentLinkCode
           }]
         });
+        console.log(`[Customers API] Created new customer ${customerId}, spent: ${payment.totalAmount}`);
       }
     });
 
     const customers = Array.from(customersMap.values());
+    console.log(`[Customers API] Created ${customers.length} unique customers`);
 
+    console.log('[Customers API] Returning response with', customers.length, 'customers');
+    console.log('[Customers API] Sample customer:', customers.length > 0 ? customers[0] : 'none');
+    
     return NextResponse.json({
       object: 'list',
       data: customers,
@@ -117,7 +142,7 @@ export async function GET(request: NextRequest) {
       url: '/v1/customers'
     });
   } catch (error) {
-    console.error('Error fetching customers:', error);
+    console.error('[Customers API] Error fetching customers:', error);
     return NextResponse.json(
       { error: { type: 'api_error', message: 'Internal server error' } },
       { status: 500 }
