@@ -1,22 +1,32 @@
 'use client';
 
-import { ProductForm } from '@/components/products/product-form';
-import { ErrorBoundary } from '@/components/error-boundary';
+import dynamic from 'next/dynamic';
+
+// Dynamically import ProductFormSafe with no SSR
+const ProductFormSafe = dynamic(
+  () => import('@/components/products/product-form-safe').then(mod => ({ default: mod.ProductFormSafe })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-10 bg-gray-200 rounded mb-4"></div>
+          <div className="h-20 bg-gray-200 rounded mb-4"></div>
+          <div className="h-10 bg-gray-200 rounded mb-4"></div>
+          <div className="h-10 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    )
+  }
+);
 
 export default function NewProductPage() {
   return (
-    <ErrorBoundary
-      onError={(error, errorInfo) => {
-        console.error('NewProductPage Error:', error);
-        console.error('Error Info:', errorInfo);
-      }}
-    >
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-2xl font-bold mb-6">Create New Product</h1>
-        <div className="bg-white rounded-lg shadow p-6">
-          <ProductForm />
-        </div>
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <h1 className="text-2xl font-bold mb-6">Create New Product</h1>
+      <div className="bg-white rounded-lg shadow p-6">
+        <ProductFormSafe />
       </div>
-    </ErrorBoundary>
+    </div>
   );
 }

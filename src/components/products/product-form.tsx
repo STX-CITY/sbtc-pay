@@ -15,7 +15,6 @@ export function ProductForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
@@ -24,29 +23,25 @@ export function ProductForm() {
   });
   const [imageInput, setImageInput] = useState('');
 
-  // Ensure component is mounted before accessing client-side APIs
+  // Log mounting info without causing hydration issues
   useEffect(() => {
-    setMounted(true);
+    // Only run on client side
+    console.log('ProductForm mounted:', {
+      hostname: window.location.hostname,
+      pathname: window.location.pathname,
+      hasLocalStorage: typeof localStorage !== 'undefined',
+      timestamp: new Date().toISOString()
+    });
     
-    // Log environment info for debugging
-    if (typeof window !== 'undefined') {
-      console.log('ProductForm mounted:', {
-        hostname: window.location.hostname,
-        pathname: window.location.pathname,
-        hasLocalStorage: typeof localStorage !== 'undefined',
-        timestamp: new Date().toISOString()
-      });
-      
-      // Check if auth is available
-      try {
-        const hasAuth = localStorage.getItem('api_key') !== null;
-        console.log('Auth status:', hasAuth);
-        if (!hasAuth) {
-          console.warn('No API key found in localStorage');
-        }
-      } catch (err) {
-        console.error('Error checking auth:', err);
+    // Check if auth is available
+    try {
+      const hasAuth = localStorage.getItem('api_key') !== null;
+      console.log('Auth status:', hasAuth);
+      if (!hasAuth) {
+        console.warn('No API key found in localStorage');
       }
+    } catch (err) {
+      console.error('Error checking auth:', err);
     }
   }, []);
 
@@ -142,19 +137,6 @@ export function ProductForm() {
       images: prev.images.filter((_, i) => i !== index)
     }));
   };
-
-  // Don't render until mounted to avoid hydration issues
-  if (!mounted) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-10 bg-gray-200 rounded mb-4"></div>
-          <div className="h-20 bg-gray-200 rounded mb-4"></div>
-          <div className="h-10 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
