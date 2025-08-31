@@ -3,6 +3,8 @@ import { db, webhookEvents, webhookEndpoints } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth/middleware';
 import { eq, and, desc, gte, lte, ilike } from 'drizzle-orm';
 
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request);

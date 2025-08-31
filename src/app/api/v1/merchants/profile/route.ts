@@ -11,6 +11,7 @@ const updateProfileSchema = z.object({
   webhookUrl: z.string().url().optional().or(z.literal('')),
   checkoutRedirectUrl: z.string().url().optional().or(z.literal('')),
 });
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {

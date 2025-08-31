@@ -20,7 +20,7 @@ const createWebhookEndpointSchema = z.object({
   ])).min(1, 'At least one event must be selected'),
   active: z.boolean().optional().default(true)
 });
-
+export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request);
