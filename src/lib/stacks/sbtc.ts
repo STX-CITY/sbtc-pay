@@ -51,8 +51,7 @@ export const transferSBTC = async ({
 
     // Create post conditions to ensure the exact amount is transferred
     const postConditions: PostCondition[] = [
-      Pc.principal(sender).willSendLte(amount).ft(assetString, "sBTC"),
-      Pc.principal(sender).willSendEq(0).ustx()
+      Pc.principal(sender).willSendLte(amount).ft(assetString, "sbtc-token"),
     ];
 
     console.log('Initiating sBTC transfer:', {
@@ -78,7 +77,8 @@ export const transferSBTC = async ({
         Cl.principal(recipient),    // recipient address
         Cl.none()
       ],
-      postConditionMode: 'allow',
+      postConditions: postConditions,
+      postConditionMode: 'deny',
       network: 'testnet'
     });
 

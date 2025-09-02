@@ -79,6 +79,93 @@ sBTC Pay leverages the revolutionary sBTC protocol on Stacks to bring Bitcoin in
 ---
 
 
+## 📊 Payment Workflow Diagram
+
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant W as Wallet (Xverse/Leather)
+    participant SP as sBTC Pay Platform
+    participant SC as Stacks Chain
+    participant CH as Chainhooks
+    participant M as Merchant Backend
+    participant MD as Merchant Dashboard
+
+    Note over C,MD: Payment Flow
+
+    C->>SP: 1. Visit checkout page
+    SP->>C: 2. Show payment details & QR code
+    C->>W: 3. Connect wallet
+    W->>SP: 4. Wallet connected
+    C->>W: 5. Authorize sBTC transfer
+    W->>SC: 6. Submit transaction to Stacks
+    SC->>CH: 7. Transaction broadcast
+    CH->>SP: 8. Real-time notification
+    SP->>M: 9. Webhook: payment.succeeded
+    SP->>MD: 10. Update dashboard
+    SP->>C: 11. Payment confirmation
+    M->>C: 12. Order fulfillment
+    
+    Note over SP,M: Instant notifications via webhooks
+    Note over SC: Bitcoin finality achieved
+```
+
+## 🏗️ System Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph "Customer Layer"
+        CW[Customer Wallet<br/>Xverse/Leather]
+        CB[Customer Browser<br/>Checkout Page]
+    end
+    
+    subgraph "sBTC Pay Platform"
+        API[RESTful API<br/>Payment Intents]
+        WS[WebSocket Server<br/>Real-time Updates]
+        WH[Webhook System<br/>Event Delivery]
+        DASH[Merchant Dashboard<br/>Analytics & Management]
+        DB[(PostgreSQL<br/>Payment Data)]
+    end
+    
+    subgraph "Blockchain Layer"
+        SC[Stacks Chain<br/>sBTC Protocol]
+        CH[Chainhooks<br/>Event Monitor]
+        BTC[Bitcoin Network<br/>Security Layer]
+    end
+    
+    subgraph "Merchant Layer"
+        MW[Merchant Wallet<br/>Payment Recipient]
+        MB[Merchant Backend<br/>Order Processing]
+        MS[Merchant Store<br/>E-commerce]
+    end
+    
+    CB -->|Create Payment| API
+    CW -->|sBTC Transfer| SC
+    SC -->|Bitcoin Finality| BTC
+    SC -->|Events| CH
+    CH -->|Real-time| WS
+    CH -->|Notifications| WH
+    WH -->|HTTP Callbacks| MB
+    API -->|Store Data| DB
+    DB -->|Analytics| DASH
+    DASH -->|Management| MW
+    MS -->|Integration| API
+    WS -->|Updates| CB
+    
+    classDef customer fill:#e1f5fe
+    classDef platform fill:#f3e5f5
+    classDef blockchain fill:#fff3e0
+    classDef merchant fill:#e8f5e8
+    
+    class CW,CB customer
+    class API,WS,WH,DASH,DB platform
+    class SC,CH,BTC blockchain
+    class MW,MB,MS merchant
+```
+
+---
+
+
 ## 🌟 Key Features
 
 
@@ -140,8 +227,46 @@ const payment = await gateway.paymentIntents.create({
 
 
 ### 3. **Real-Time Monitoring**
+
+```mermaid
+graph TD
+    subgraph "Blockchain Events"
+        SC[Stacks Chain<br/>sBTC Transfer]
+        CH[Chainhooks<br/>Event Monitor]
+    end
+    
+    subgraph "sBTC Pay Platform"
+        ES[Event System<br/>Process & Store]
+        WS[WebSocket<br/>Live Updates]
+        WQ[Webhook Queue<br/>Retry Logic]
+    end
+    
+    subgraph "Merchant Integration"
+        MD[Merchant Dashboard<br/>Live Status]
+        CO[Customer Checkout<br/>Real-time Updates]
+        MB[Merchant Backend<br/>HTTP Webhooks]
+    end
+    
+    SC -->|Transaction| CH
+    CH -->|Real-time Event| ES
+    ES -->|Live Feed| WS
+    ES -->|Queue Event| WQ
+    WS -->|Updates| MD
+    WS -->|Status| CO
+    WQ -->|HTTP POST| MB
+    WQ -->|Retry Failed| WQ
+    
+    classDef blockchain fill:#fff3e0
+    classDef platform fill:#f3e5f5
+    classDef merchant fill:#e8f5e8
+    
+    class SC,CH blockchain
+    class ES,WS,WQ platform
+    class MD,CO,MB merchant
+```
+
 - **Chainhooks Integration**: Instant blockchain event notifications
-- **WebSocket Support**: Live payment status updates
+- **WebSocket Support**: Live payment status updates  
 - **Webhook System**: HTTP callbacks with retry logic and signature verification
 - **Event Types**: payment.created, payment.succeeded, payment.failed
 
@@ -217,21 +342,37 @@ const payment = await gateway.paymentIntents.create({
 - **Monitoring**: Real-time error tracking
 
 
-### System Architecture
+### Developer Integration Options
 
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Customer      │────▶│   sBTC Pay      │────▶│   Merchant      │
-│   Wallet        │     │   Platform      │     │   Dashboard     │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                       │                         │
-        │                       │                         │
-        ▼                       ▼                         ▼
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Stacks Chain   │────▶│   Chainhooks    │────▶│   Webhooks      │
-│   (sBTC)        │     │   Monitor       │     │   Delivery      │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
+```mermaid
+graph LR
+    subgraph "Integration Methods"
+        API[Direct API<br/>REST Endpoints]
+        SDK[JavaScript SDK<br/>npm package]
+        RC[React Components<br/>@sbtc-gateway/react]
+        EW[Embeddable Widget<br/>Script tag]
+        PL[Payment Links<br/>No-code solution]
+    end
+    
+    subgraph "Business Applications"
+        ECOM[E-commerce Store]
+        SAAS[SaaS Platform]
+        MARKET[Marketplace]
+        CONTENT[Content Platform]
+        MOBILE[Mobile App]
+    end
+    
+    API --> SAAS
+    SDK --> ECOM
+    RC --> MARKET
+    EW --> CONTENT
+    PL --> MOBILE
+    
+    classDef integration fill:#e3f2fd
+    classDef business fill:#f1f8e9
+    
+    class API,SDK,RC,EW,PL integration
+    class ECOM,SAAS,MARKET,CONTENT,MOBILE business
 ```
 
 
@@ -240,6 +381,34 @@ const payment = await gateway.paymentIntents.create({
 
 ## ⚡ sBTC Integration Deep Dive
 
+### sBTC Protocol Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant SW as Stacks Wallet
+    participant SC as Stacks Chain
+    participant SV as sBTC Signers<br/>(15+ Validators)
+    participant BN as Bitcoin Network
+    participant SP as sBTC Pay
+
+    Note over U,SP: sBTC Minting & Payment Process
+
+    U->>SW: 1. Deposit BTC
+    SW->>BN: 2. Send BTC to threshold wallet
+    BN->>SV: 3. BTC received (70% consensus)
+    SV->>SC: 4. Mint sBTC 1:1
+    SC->>SW: 5. sBTC tokens available
+    
+    Note over SW,SP: Payment Transaction
+    
+    SW->>SC: 6. Transfer sBTC to merchant
+    SC->>SP: 7. Chainhook notification
+    SP->>SP: 8. Update payment status
+    
+    Note over SV: Decentralized consensus
+    Note over BN,SC: 100% Bitcoin finality
+```
 
 ### Leveraging sBTC's Unique Capabilities
 
@@ -413,6 +582,57 @@ Unlike Lightning Network's probabilistic payments, sBTC transactions achieve Bit
 
 ## 🏆 Why sBTC Pay Wins
 
+### Competitive Comparison
+
+```mermaid
+graph TB
+    subgraph "Payment Solutions Comparison"
+        subgraph "Traditional (Stripe/PayPal)"
+            T1[✅ Easy Integration]
+            T2[❌ High Fees 2-3%]
+            T3[❌ Custodial]
+            T4[❌ Geographic Limits]
+            T5[❌ Chargebacks]
+        end
+        
+        subgraph "Lightning Network"
+            L1[✅ Low Fees]
+            L2[❌ Complex Setup]
+            L3[❌ Liquidity Management]
+            L4[❌ Limited APIs]
+            L5[❌ Channel Requirements]
+        end
+        
+        subgraph "Ethereum/Wrapped BTC"
+            E1[✅ Smart Contracts]
+            E2[❌ High Gas Fees]
+            E3[❌ Bridge Risks]
+            E4[❌ Not Real Bitcoin]
+            E5[❌ Network Congestion]
+        end
+        
+        subgraph "sBTC Pay Solution"
+            S1[✅ Easy Integration]
+            S2[✅ Low Fees <0.1%]
+            S3[✅ Non-Custodial]
+            S4[✅ Global Access]
+            S5[✅ Real Bitcoin]
+            S6[✅ Instant Finality]
+            S7[✅ Smart Contracts]
+            S8[✅ Developer APIs]
+        end
+    end
+    
+    classDef traditional fill:#ffebee
+    classDef lightning fill:#fff3e0  
+    classDef ethereum fill:#f3e5f5
+    classDef sbtcpay fill:#e8f5e8
+    
+    class T1,T2,T3,T4,T5 traditional
+    class L1,L2,L3,L4,L5 lightning
+    class E1,E2,E3,E4,E5 ethereum
+    class S1,S2,S3,S4,S5,S6,S7,S8 sbtcpay
+```
 
 ### Competitive Advantages
 
