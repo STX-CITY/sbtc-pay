@@ -29,11 +29,14 @@ interface Customer {
   }[];
 }
 
+type SortOption = 'latest' | 'oldest' | 'totalSpent' | 'paymentCount' | 'email';
+
 export function CustomerList() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('latest');
 
   useEffect(() => {
     fetchCustomers();
@@ -50,7 +53,8 @@ export function CustomerList() {
       }
 
       const data = await response.json();
-      setCustomers(data.data);
+      const sortedCustomers = sortCustomers(data.data, sortBy);
+      setCustomers(sortedCustomers);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load customers');
     } finally {
@@ -60,6 +64,35 @@ export function CustomerList() {
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString();
+  };
+
+  const sortCustomers = (customersToSort: Customer[], sortOption: SortOption): Customer[] => {
+    const sorted = [...customersToSort];
+    
+    switch (sortOption) {
+      case 'latest':
+        return sorted.sort((a, b) => b.last_payment - a.last_payment);
+      case 'oldest':
+        return sorted.sort((a, b) => a.last_payment - b.last_payment);
+      case 'totalSpent':
+        return sorted.sort((a, b) => b.total_spent - a.total_spent);
+      case 'paymentCount':
+        return sorted.sort((a, b) => b.payment_count - a.payment_count);
+      case 'email':
+        return sorted.sort((a, b) => {
+          const aEmail = a.email || a.address || '';
+          const bEmail = b.email || b.address || '';
+          return aEmail.localeCompare(bEmail);
+        });
+      default:
+        return sorted;
+    }
+  };
+
+  const handleSortChange = (newSortBy: SortOption) => {
+    setSortBy(newSortBy);
+    const sortedCustomers = sortCustomers(customers, newSortBy);
+    setCustomers(sortedCustomers);
   };
 
   const toggleCustomerDetails = (customerId: string) => {
@@ -103,6 +136,34 @@ export function CustomerList() {
 
   return (
     <div className="space-y-4">
+      {/* Sort Controls */}
+      <div className="bg-white shadow rounded-lg border border-gray-200 p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-medium text-gray-900">Sort customers by:</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'latest' as SortOption, label: 'Latest Payment', icon: '🕒' },
+              { value: 'oldest' as SortOption, label: 'Oldest Payment', icon: '⏰' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleSortChange(option.value)}
+                className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  sortBy === option.value
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                <span className="mr-2">{option.icon}</span>
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <ul className="divide-y divide-gray-200">
           {customers.map((customer) => (
