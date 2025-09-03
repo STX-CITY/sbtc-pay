@@ -3,6 +3,8 @@ import { db, paymentIntents, merchants } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { getCurrentNetwork } from '@/lib/stacks/config';
 import { getRandomHeader } from '@/lib/utils/headers';
+import { formatPaymentIntentResponse } from '@/lib/payments/utils';
+import { createWebhookEvent } from '@/lib/webhooks/sender';
 
 interface TransactionResult {
   tx: {
@@ -181,6 +183,16 @@ export async function POST(request: NextRequest) {
               updatedAt: new Date()
             })
             .where(eq(paymentIntents.id, paymentIntentId));
+
+
+          // Send webhook notification to merchant
+          try {
+            const webhookData = formatPaymentIntentResponse(paymentIntent);
+            await createWebhookEvent(paymentIntent.merchantId, 'payment_intent.succeeded', webhookData);
+            console.log(`Sent webhook event for payment intent ${paymentIntent.id}`);
+          } catch (webhookError) {
+            console.error('Error sending webhook:', webhookError);
+          }
 
           return NextResponse.json({
             status: 'succeeded',
