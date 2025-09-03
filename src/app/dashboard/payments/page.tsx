@@ -14,6 +14,15 @@ export default function PaymentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [stats, setStats] = useState({
+    all: 0,
+    succeeded: 0,
+    pending: 0,
+    failed: 0,
+    refunded: 0,
+    disputed: 0,
+    uncaptured: 0
+  });
   const pageSize = 10;
 
   useEffect(() => {
@@ -36,6 +45,19 @@ export default function PaymentsPage() {
         setHasMore(data.has_more || false);
         setTotalCount(data.total || newPayments.length);
         setCurrentPage(page);
+        
+        // Update stats from API response
+        if (data.stats) {
+          setStats({
+            all: data.stats.all || 0,
+            succeeded: data.stats.succeeded || 0,
+            pending: data.stats.pending || 0,
+            failed: data.stats.failed || 0,
+            refunded: 0, // Not supported yet
+            disputed: 0, // Not supported yet
+            uncaptured: 0 // Not supported yet
+          });
+        }
       } else {
         console.error('Failed to fetch payments:', response.statusText);
       }
@@ -75,15 +97,6 @@ export default function PaymentsPage() {
     return true;
   });
 
-  const stats = {
-    all: payments.length,
-    succeeded: payments.filter(p => p.status === 'succeeded').length,
-    pending: payments.filter(p => p.status === 'pending').length,
-    failed: payments.filter(p => p.status === 'failed').length,
-    refunded: 0,
-    disputed: 0,
-    uncaptured: 0
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">

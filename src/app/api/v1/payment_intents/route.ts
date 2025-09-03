@@ -4,7 +4,7 @@ import { db, paymentIntents, products, merchants } from '@/lib/db';
 import { generatePaymentIntentId, formatPaymentIntentResponse, getExchangeRate, convertUsdToSbtc } from '@/lib/payments/utils';
 import { createWebhookEvent } from '@/lib/webhooks/sender';
 import { authenticateRequest } from '@/lib/auth/middleware';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
 const createPaymentIntentSchema = z.object({
   amount: z.number().positive().optional(),
@@ -222,6 +222,23 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(paymentIntents.status, status as any));
     }
 
+    // Get total count for pagination
+    const [{ count: totalCount }] = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(paymentIntents)
+      .where(and(...conditions));
+
+    // Get status counts for the merchant (without status filter)
+    const baseConditions = [eq(paymentIntents.merchantId, auth.merchantId)];
+    const statusCounts = await db
+      .select({ 
+        status: paymentIntents.status,
+        count: sql<number>`cast(count(*) as integer)` 
+      })
+      .from(paymentIntents)
+      .where(and(...baseConditions))
+      .groupBy(paymentIntents.status);
+
     const merchantPaymentIntents = await db
       .select({
         paymentIntent: paymentIntents,
@@ -243,10 +260,25 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Calculate total count for all statuses
+    const allCount = statusCounts.reduce((sum, item) => sum + item.count, 0);
+    
+    // Build status counts object
+    const stats = {
+      all: allCount,
+      succeeded: statusCounts.find(item => item.status === 'succeeded')?.count || 0,
+      pending: statusCounts.find(item => item.status === 'pending')?.count || 0,
+      failed: statusCounts.find(item => item.status === 'failed')?.count || 0,
+      created: statusCounts.find(item => item.status === 'created')?.count || 0,
+      canceled: statusCounts.find(item => item.status === 'canceled')?.count || 0,
+    };
+
     return NextResponse.json({
       object: 'list',
       data,
-      has_more: data.length === limit,
+      has_more: offset + data.length < totalCount,
+      total: totalCount,
+      stats,
       url: '/v1/payment_intents'
     });
   } catch (error) {
