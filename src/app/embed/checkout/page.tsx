@@ -14,6 +14,7 @@ interface PaymentIntent {
   recipient_address: string;
   status: string;
   description?: string;
+  customer_email?: string;
 }
 
 function EmbedCheckoutContent() {
@@ -165,6 +166,29 @@ function EmbedCheckoutContent() {
 
     setPaymentStatus('processing');
 
+    // Update payment intent with customer email if provided
+    if (customerEmail && customerEmail !== paymentIntent.customer_email) {
+      try {
+        const response = await fetch(`/api/v1/payment_intents/${paymentIntent.id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            customer_email: customerEmail
+          })
+        });
+
+        if (response.ok) {
+          const updatedPaymentIntent = await response.json();
+          setPaymentIntent(updatedPaymentIntent);
+        }
+      } catch (err) {
+        console.error('Failed to update payment intent with email:', err);
+      }
+    }
+
     try {
       const result = await transferSBTC({
         paymentIntentId: paymentIntent.id,
@@ -197,7 +221,32 @@ function EmbedCheckoutContent() {
     }
   };
 
-  const handleManualPayment = () => {
+  const handleManualPayment = async () => {
+    if (!paymentIntent) return;
+
+    // Update payment intent with customer email if provided
+    if (customerEmail && customerEmail !== paymentIntent.customer_email) {
+      try {
+        const response = await fetch(`/api/v1/payment_intents/${paymentIntent.id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            customer_email: customerEmail
+          })
+        });
+
+        if (response.ok) {
+          const updatedPaymentIntent = await response.json();
+          setPaymentIntent(updatedPaymentIntent);
+        }
+      } catch (err) {
+        console.error('Failed to update payment intent with email:', err);
+      }
+    }
+
     // For manual payment, just show the instructions and let user confirm when sent
     setPaymentStatus('success');
     
