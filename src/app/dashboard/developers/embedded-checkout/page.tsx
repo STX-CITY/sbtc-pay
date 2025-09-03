@@ -107,6 +107,107 @@ export default function EmbeddedCheckoutPage() {
     setTimeout(() => setShowCopyAlert(false), 3000);
   };
 
+  const generateCompleteHTML = () => {
+    if (!selectedProduct) return '';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sBTC Pay Embedded Checkout - ${selectedProduct.name}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9fafb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            padding: 32px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .header h1 {
+            color: #1f2937;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+        }
+        .header p {
+            color: #6b7280;
+            font-size: 16px;
+            margin: 0;
+        }
+        .checkout-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        .info {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+        .info p {
+            color: #0c4a6e;
+            font-size: 14px;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>sBTC Pay Embedded Checkout</h1>
+            <p>Product: <strong>${selectedProduct.name}</strong></p>
+            ${selectedProduct.price_usd ? 
+              `<p>Price: <strong>$${selectedProduct.price_usd.toFixed(2)} USD</strong></p>` : 
+              `<p>Price: <strong>${(selectedProduct.price / 100_000_000).toFixed(8)} sBTC</strong></p>`
+            }
+        </div>
+        
+        <div class="checkout-container">
+            ${generatedCode}
+        </div>
+        
+        <div class="info">
+            <p><strong>Note:</strong> This is a test integration. The embedded checkout will load the sBTC Pay interface for the selected product.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+  };
+
+  const downloadHTML = () => {
+    if (!selectedProduct) return;
+    
+    const htmlContent = generateCompleteHTML();
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sbtc-pay-checkout-${selectedProduct.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-8">
       {/* Success Alert */}
@@ -335,12 +436,20 @@ export default function EmbeddedCheckoutPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Embed Code</h3>
-                <button
-                  onClick={copyToClipboard}
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  Copy to Clipboard
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={downloadHTML}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg transition-colors"
+                  >
+                    Download HTML
+                  </button>
+                  <button
+                    onClick={copyToClipboard}
+                    className="px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-300 hover:border-blue-400 rounded-lg transition-colors"
+                  >
+                    Copy to Clipboard
+                  </button>
+                </div>
               </div>
               <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
                 <pre className="text-green-400 text-sm">
