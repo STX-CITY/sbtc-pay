@@ -257,10 +257,16 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
                     <strong>Manual Payment Requirements:</strong>
                   </p>
                   <ul className="text-xs text-blue-700 mt-2 text-left list-disc list-inside">
-                    <li>Exact amount: {(paymentIntent.amount / 100_000_000).toFixed(8)} sBTC</li>
+                    <li><mark className="bg-yellow-200 font-semibold">Exact</mark> amount: {(paymentIntent.amount / 100_000_000).toFixed(8)} sBTC</li>
                     <li>Memo: {paymentIntentId}</li>
                     <li>Network confirmation required</li>
                   </ul>
+                </div>
+                
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>⚠️ Important:</strong> If you transfer mistakenly, contact merchant for manual refund handling.
+                  </p>
                 </div>
                 
                 <div className="text-sm text-gray-500">
