@@ -202,11 +202,31 @@ function EmbedCheckoutContent() {
       console.log('sBTC transfer completed:', result);
       setPaymentStatus('success');
       
+      // Send webhook notification to merchant
+      try {
+        await fetch(`/api/v1/public/payment_intents/${paymentIntent.id}/webhook_notify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            tx_id: result.txId,
+            customer_address: walletAddress,
+            public_api_key: apiKey
+          })
+        });
+        console.log(`Sent webhook event for payment intent ${paymentIntent.id}`);
+      } catch (webhookError) {
+        console.error('Error sending webhook:', webhookError);
+        // Don't fail the payment if webhook fails
+      }
+      
       // Send success message to parent window
       window.parent.postMessage({
         type: 'sbtc_payment_success',
         paymentIntent: paymentIntent,
-        txId: result.txId
+        txId: result.txId,
+        customerEmail: customerEmail
       }, '*');
     } catch (err) {
       console.error('sBTC payment error:', err);
