@@ -30,6 +30,8 @@ export default function WidgetBuilderPage() {
     showDescription: true,
   });
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedReactCode, setCopiedReactCode] = useState(false);
+  const [activeTab, setActiveTab] = useState<'html' | 'react'>('html');
 
   useEffect(() => {
     fetchProducts();
@@ -71,6 +73,7 @@ export default function WidgetBuilderPage() {
       return `<!-- sBTC Payment Widget -->
 <script src="${baseUrl}/widget.js" 
         data-sbtc-key="pk_test_your_public_key_here"
+        data-product-id="${selectedProd?.id}"
         data-amount="${amount}"
         data-description="${description}"
         data-theme="${config.theme}"
@@ -112,6 +115,70 @@ export default function WidgetBuilderPage() {
 <script src="${baseUrl}/widget.js"></script>`;
   };
 
+  const generateReactCode = () => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://yoursite.com';
+    const selectedProd = products.find(p => p.id === config.productId);
+    const amount = config.customAmount 
+      ? Math.round(config.customAmount * 100_000_000) 
+      : selectedProd?.price || 0;
+    const description = selectedProd?.description || selectedProd?.name || 'Payment';
+    
+    return `import Script from 'next/script';
+
+export default function WidgetPage() {
+  return (
+    <>
+      <Script src="${baseUrl}/widget.js" strategy="afterInteractive" />
+      
+      <div className="container mx-auto p-8 max-w-4xl">
+        <h1 className="text-3xl font-bold mb-4">sBTCPay Widget Demo</h1>
+
+        <h2 className="text-xl font-semibold mb-4">Live Widget Preview</h2>
+        
+        {/* sBTC ${config.widgetType.charAt(0).toUpperCase() + config.widgetType.slice(1)} Widget */}
+        ${config.widgetType === 'inline' ? 
+          `<div data-sbtc-widget
+             data-sbtc-key="pk_test_your_public_key_here"
+             data-product-id="${selectedProd?.id || ''}"
+             data-theme="${config.theme}"
+             data-color="${config.primaryColor}"
+             data-type="inline"
+             ${config.showAmount ? 'data-show-amount="true"' : 'data-show-amount="false"'}
+             ${config.showDescription ? 'data-show-description="true"' : 'data-show-description="false"'}>
+        </div>` :
+        config.widgetType === 'button' ? 
+          `<script src="${baseUrl}/widget.js" 
+                data-sbtc-key="pk_test_your_public_key_here"
+                data-product-id="${selectedProd?.id || ''}"
+                data-amount="${amount}"
+                data-description="${description}"
+                data-theme="${config.theme}"
+                data-color="${config.primaryColor}"
+                data-size="${config.buttonSize}"
+                data-text="${config.buttonText}"
+                ${config.showAmount ? 'data-show-amount="true"' : ''}
+                ${config.showDescription ? 'data-show-description="true"' : ''}>
+          </script>` :
+          `<a href="#" 
+             data-sbtc-link
+             data-sbtc-key="pk_test_your_public_key_here"
+             data-product-id="${selectedProd?.id || ''}"
+             data-amount="${amount}"
+             data-description="${description}"
+             data-theme="${config.theme}"
+             data-color="${config.primaryColor}"
+             style={{color: '${config.primaryColor}'}}>
+            ${config.buttonText}
+          </a>
+          <Script src="${baseUrl}/widget.js" strategy="afterInteractive" />`
+        }
+        
+      </div>
+    </>
+  );
+}`;
+  };
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(generateWidgetCode());
@@ -119,6 +186,16 @@ export default function WidgetBuilderPage() {
       setTimeout(() => setCopiedCode(false), 2000);
     } catch (err) {
       console.error('Failed to copy code');
+    }
+  };
+
+  const copyReactToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(generateReactCode());
+      setCopiedReactCode(true);
+      setTimeout(() => setCopiedReactCode(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy React code');
     }
   };
 
@@ -226,6 +303,18 @@ export default function WidgetBuilderPage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Widget Builder</h1>
         <p className="text-gray-600">
           Create drop-in payment widgets that your customers can add to any website with just a few lines of code.
+        </p>
+        <p className="text-gray-600 mt-2">
+          Need a working example? Check out the{' '}
+          <a
+            href="https://github.com/STX-CITY/demo-sbtc-pay/blob/d80db12989d10b2a74aa1d91bfad4ea05bf78464/app/widget/page.tsx"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline font-medium"
+          >
+            React Integration Sample
+          </a>
+          {' '}on GitHub.
         </p>
       </div>
 
@@ -391,7 +480,7 @@ export default function WidgetBuilderPage() {
                 </div>
               </div>
 
-              {/* Custom Amount */}
+              {/* Custom Amount
               <div>
                 <label className="flex items-center mb-2">
                   <input
@@ -416,7 +505,7 @@ export default function WidgetBuilderPage() {
                     placeholder="10.00"
                   />
                 )}
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -442,19 +531,49 @@ export default function WidgetBuilderPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Generated Code</h2>
               <button
-                onClick={copyToClipboard}
+                onClick={activeTab === 'html' ? copyToClipboard : copyReactToClipboard}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  copiedCode
+                  (activeTab === 'html' && copiedCode) || (activeTab === 'react' && copiedReactCode)
                     ? 'bg-green-100 text-green-700'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    : activeTab === 'html'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-purple-600 text-white hover:bg-purple-700'
                 }`}
               >
-                {copiedCode ? 'Copied!' : 'Copy Code'}
+                {(activeTab === 'html' && copiedCode) || (activeTab === 'react' && copiedReactCode)
+                  ? 'Copied!' 
+                  : `Copy ${activeTab === 'html' ? 'HTML' : 'React'} Code`
+                }
               </button>
             </div>
+            
+            {/* Tab Navigation */}
+            <div className="flex space-x-1 mb-4 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab('html')}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'html'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                HTML Integration
+              </button>
+              <button
+                onClick={() => setActiveTab('react')}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'react'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                React/Next.js Integration
+              </button>
+            </div>
+            
             <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
               <pre className="text-sm text-gray-100">
-                <code>{generateWidgetCode()}</code>
+                <code>{activeTab === 'html' ? generateWidgetCode() : generateReactCode()}</code>
               </pre>
             </div>
             <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
