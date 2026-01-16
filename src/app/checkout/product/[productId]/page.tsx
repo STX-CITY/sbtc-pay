@@ -334,7 +334,17 @@ export default function ProductCheckoutPage({
               Your payment information is encrypted and secure
             </div>
             <div className="text-xs text-gray-400">
-              Powered by sBTC Payment Gateway
+              <div>Powered by sBTC Payment Gateway</div>
+              <div className="mt-1">
+                <a
+                  href="https://servercompass.app/"
+                  rel="dofollow"
+                  target="_blank"
+                  className="hover:text-gray-600 transition-colors"
+                >
+                  Deployed using <span className="text-blue-500 font-semibold">ServerCompass</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>

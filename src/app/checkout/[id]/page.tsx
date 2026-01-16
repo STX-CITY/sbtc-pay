@@ -402,6 +402,16 @@ export default function CheckoutPage({ params, searchParams }: CheckoutPageProps
 
         <div className="mt-6 text-center text-sm text-gray-500">
           <p>Powered by sBTC Payment Gateway</p>
+          <p className="mt-2">
+            <a
+              href="https://servercompass.app/"
+              rel="dofollow"
+              target="_blank"
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Deployed using <span className="text-blue-500 font-semibold">ServerCompass</span>
+            </a>
+          </p>
         </div>
       </div>
     </div>

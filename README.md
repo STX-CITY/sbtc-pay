@@ -360,3 +360,9 @@ MIT License - see LICENSE file for details.
 ---
 
 Built with ❤️ for the Bitcoin and Stacks ecosystem.
+
+<p align="center">
+  <a href="https://servercompass.app/" rel="dofollow">
+    <img src="https://img.shields.io/badge/Deployed_using-ServerCompass-blue?style=for-the-badge" alt="Deployed using ServerCompass">
+  </a>
+</p>

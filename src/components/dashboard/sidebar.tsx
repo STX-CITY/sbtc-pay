@@ -266,6 +266,16 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         >
           Docs
         </Link>
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <a
+            href="https://servercompass.app/"
+            rel="dofollow"
+            target="_blank"
+            className="text-xs text-gray-500 hover:text-gray-700 block text-center"
+          >
+            Deployed using <span className="text-blue-600 font-semibold">ServerCompass</span>
+          </a>
+        </div>
       </div>
     </>
   );

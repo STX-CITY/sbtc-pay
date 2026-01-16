@@ -647,6 +647,18 @@ app.post('/webhooks', (req, res) => {
           </div> */}
           <div className="border-t border-gray-800 mt-12 pt-8 text-center">
             <p>&copy; 2025 sBTC Payment Gateway. Built on Stacks blockchain.</p>
+            <div className="mt-4">
+              <a
+                href="https://servercompass.app/"
+                rel="dofollow"
+                target="_blank"
+                className="inline-block"
+              >
+                <span className="text-gray-400 hover:text-white transition-colors">
+                  Deployed using <span className="text-blue-400 font-semibold">ServerCompass</span>
+                </span>
+              </a>
+            </div>
           </div>
         </div>
       </footer>

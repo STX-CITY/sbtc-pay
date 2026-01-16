@@ -657,6 +657,16 @@ function EmbedCheckoutContent() {
         <p className="text-xs" style={{ color: secondaryTextColor }}>
           Powered by sBTC Payment Gateway
         </p>
+        <p className="text-xs mt-2" style={{ color: secondaryTextColor }}>
+          <a
+            href="https://servercompass.app/"
+            rel="dofollow"
+            target="_blank"
+            className="hover:opacity-70 transition-opacity"
+          >
+            Deployed using <span className="text-blue-500 font-semibold">ServerCompass</span>
+          </a>
+        </p>
       </div>
     </div>
   );
